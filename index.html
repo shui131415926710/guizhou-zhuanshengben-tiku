@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>贵州专升本历年真题与模拟卷 · 高等数学 / 英语</title>
+<style>
+  :root{
+    --bg:#f6f7f9;
+    --panel:#ffffff;
+    --ink:#16202b;
+    --ink-2:#4b5a68;
+    --ink-3:#8a97a4;
+    --line:#e3e7ec;
+    --accent:#0f766e;
+    --accent-soft:#e8f5f3;
+    --warn:#9a6b17;
+    --shadow:0 1px 2px rgba(16,32,43,.05), 0 8px 24px rgba(16,32,43,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    font-size:15px; line-height:1.65; -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent);text-decoration:none}
+
+  .topbar{
+    position:sticky; top:0; z-index:30;
+    background:rgba(255,255,255,.9); backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar-in{
+    max-width:1180px; margin:0 auto; padding:10px 20px;
+    display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+  }
+  .brand{display:flex;align-items:baseline;gap:10px;margin-right:auto}
+  .brand h1{font-size:17px;margin:0;font-weight:650;letter-spacing:.3px}
+  .brand span{font-size:12px;color:var(--ink-3)}
+  .subj-tabs{display:flex;background:#eef1f4;border-radius:9px;padding:3px}
+  .subj-tabs button{
+    border:0;background:transparent;padding:7px 15px;border-radius:7px;
+    font-size:14px;color:var(--ink-2);cursor:pointer;font-weight:500;transition:.15s;white-space:nowrap;
+  }
+  .subj-tabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(16,32,43,.1)}
+  .switch{
+    display:flex;align-items:center;gap:7px;font-size:13px;color:var(--ink-2);
+    cursor:pointer;user-select:none;white-space:nowrap;
+  }
+  .switch input{accent-color:var(--accent);width:15px;height:15px}
+
+  .wrap{max-width:1180px;margin:0 auto;padding:22px 20px 80px;display:grid;grid-template-columns:236px 1fr;gap:22px;align-items:start}
+  @media (max-width:900px){ .wrap{grid-template-columns:1fr;gap:14px} }
+
+  .side{position:sticky;top:74px}
+  @media (max-width:900px){ .side{position:static} }
+  .side-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px;box-shadow:var(--shadow)}
+  .side-title{font-size:12px;color:var(--ink-3);padding:8px 10px 6px;letter-spacing:.5px}
+  .cat-tabs{display:flex;gap:6px;padding:4px 6px 8px}
+  .cat-tabs button{
+    flex:1;border:1px solid var(--line);background:#fff;padding:6px 0;border-radius:8px;
+    font-size:13px;color:var(--ink-2);cursor:pointer;transition:.12s;
+  }
+  .cat-tabs button.on{background:var(--accent-soft);border-color:#bfe0da;color:#0c6459;font-weight:600}
+  .paper-scroll{max-height:min(62vh,520px);overflow-y:auto;}
+  .paper-btn{
+    display:flex;align-items:center;gap:9px;width:100%;border:0;background:transparent;
+    padding:9px 10px;border-radius:8px;cursor:pointer;text-align:left;font-size:14px;color:var(--ink-2);
+    transition:.12s;
+  }
+  .paper-btn:hover{background:#f4f6f8}
+  .paper-btn.on{background:var(--accent-soft);color:var(--ink);font-weight:550}
+  .paper-btn .yr{font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink);min-width:52px}
+  .paper-btn .n{margin-left:auto;font-size:11px;color:var(--ink-3);background:#f0f3f5;padding:1px 7px;border-radius:20px}
+  .paper-btn.on .n{background:#fff;color:var(--accent)}
+
+  .main{min-width:0}
+  .paper-head{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;box-shadow:var(--shadow);margin-bottom:16px;
+  }
+  .paper-head h2{margin:0 0 6px;font-size:20px;font-weight:650}
+  .meta{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--ink-3)}
+  .meta b{color:var(--ink-2);font-weight:600}
+  .note{
+    margin-top:12px;font-size:12.5px;color:var(--warn);background:#fdf8ec;
+    border:1px solid #f3e6c9;border-radius:8px;padding:9px 12px;line-height:1.6;
+  }
+
+  .q{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:18px 22px;margin-bottom:14px;box-shadow:var(--shadow);
+  }
+  .q-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+  .qno{
+    min-width:30px;height:26px;border-radius:7px;background:#eff3f6;color:var(--ink-2);
+    display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:650;
+    font-variant-numeric:tabular-nums;padding:0 8px;
+  }
+  .tag{font-size:11.5px;padding:2px 8px;border-radius:20px;background:#f0f3f5;color:var(--ink-3)}
+  .tag.choice{background:#eef4ff;color:#3b62a8}
+  .score{margin-left:auto;font-size:12px;color:var(--ink-3)}
+  .score b{color:var(--ink-2)}
+
+  .stem{margin:2px 0 8px;overflow-wrap:anywhere}
+  .stem img, .opt img, .ans img{max-width:100%;height:auto;vertical-align:middle}
+  .stem p{margin:0}
+  .stem .clear-both{display:none}
+
+  .opts{display:flex;flex-direction:column;gap:7px;margin:10px 0 4px}
+  .opt{
+    display:flex;gap:10px;align-items:flex-start;padding:9px 12px;border:1px solid var(--line);
+    border-radius:9px;background:#fbfcfd;transition:.12s;font-size:14.5px;
+  }
+  .opt .k{
+    flex:0 0 22px;height:22px;border-radius:50%;background:#fff;border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:650;color:var(--ink-2)
+  }
+  .opt .v{flex:1;min-width:0;overflow-wrap:anywhere}
+  .opt .v img{max-width:100%}
+  .opt .v p{margin:0}
+  .ans-open .opt.right{border-color:#9ed3cb;background:#f0faf8}
+  .ans-open .opt.right .k{background:var(--accent);border-color:var(--accent);color:#fff}
+
+  .ans{
+    margin-top:12px;border-top:1px dashed var(--line);padding-top:12px;
+    display:none;
+  }
+  .ans-open .ans{display:block}
+  .ans-row{display:flex;gap:10px;align-items:flex-start;margin-bottom:6px;font-size:14px}
+  .ans-row .lb{flex:0 0 auto;font-size:12px;color:#0d7a71;background:var(--accent-soft);padding:2px 9px;border-radius:20px;font-weight:600}
+  .ans-row .val{flex:1;min-width:0;overflow-wrap:anywhere}
+  .ans-row .val p{margin:0}
+  .ana{font-size:13.5px;color:var(--ink-2);background:#fafbfc;border-radius:8px;padding:9px 12px;margin-top:8px;overflow-wrap:anywhere}
+  .ana img{max-width:100%}
+  .share{font-size:12px;color:var(--ink-3);margin-top:8px}
+
+  .toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+  .btn{
+    border:1px solid var(--line);background:#fff;color:var(--ink-2);border-radius:8px;
+    padding:7px 14px;font-size:13.5px;cursor:pointer;transition:.12s;font-weight:500;
+  }
+  .btn:hover{border-color:#cfd6dd;background:#fbfcfd}
+  .search{
+    flex:1;min-width:180px;border:1px solid var(--line);border-radius:8px;padding:8px 12px;
+    font-size:13.5px;color:var(--ink);background:#fff;outline:none;
+  }
+  .search:focus{border-color:#9ed3cb;box-shadow:0 0 0 3px rgba(15,118,110,.08)}
+  .loading{color:var(--ink-3);font-size:13.5px;padding:24px 0}
+
+  footer{max-width:1180px;margin:0 auto;padding:0 20px 40px;font-size:12px;color:var(--ink-3);line-height:1.8}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="brand">
+      <h1>贵州专升本真题与模拟卷</h1>
+      <span id="topStat"></span>
+    </div>
+    <div class="subj-tabs" id="subjTabs">
+      <button data-subj="math" class="on">高等数学</button>
+      <button data-subj="eng">英语</button>
+    </div>
+    <label class="switch"><input type="checkbox" id="allAns">显示全部答案</label>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="side">
+    <div class="side-card">
+      <div class="cat-tabs" id="catTabs">
+        <button data-cat="real" class="on">历年真题</button>
+        <button data-cat="sim">模拟卷</button>
+      </div>
+      <div class="paper-scroll" id="paperList"></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="toolbar">
+      <input class="search" id="search" placeholder="搜索题干 / 选项 / 答案关键词">
+      <button class="btn" id="expandAll">展开全部答案</button>
+      <button class="btn" id="collapseAll">收起答案</button>
+    </div>
+    <div id="paperHead"></div>
+    <div id="questions"><div class="loading">正在载入题目数据…</div></div>
+  </div>
+</div>
+
+<footer>
+  数据来源：库课网校 kuke99.com 贵州专升本题库 · 历年真题与模拟考场 · 仅供个人复习查看，请勿公开传播或用于商业用途。<br>
+  题干、选项、解析中的公式为图片形式，直接引用原站 CDN；若图片无法显示，说明上游资源已变更。
+</footer>
+
+<script src="data-meta.js"></script>
+<script>
+(function(){
+  const META = window.APP_META;
+  if(!META){ document.getElementById('questions').textContent = '数据未加载：请确认 data-meta.js 与本页在同一目录。'; return; }
+
+  let subject = 'math';
+  let category = 'real';
+  let currentId = null;
+  let showAll = false;
+  let keyword = '';
+  const cache = {};           // subject -> {paperId: paper}
+
+  const elTabs = document.getElementById('subjTabs');
+  const elCat = document.getElementById('catTabs');
+  const elList = document.getElementById('paperList');
+  const elHead = document.getElementById('paperHead');
+  const elQ = document.getElementById('questions');
+  const elSearch = document.getElementById('search');
+
+  document.getElementById('topStat').textContent =
+    META.stats.papers + ' 套 · ' + META.stats.questions + ' 题';
+
+  function papersOf(subj, cat){
+    return META.papers.filter(p=>p.subject===subj && p.category===cat);
+  }
+  function getPaper(id){
+    const bundle = cache[subject];
+    return bundle ? bundle[id] : null;
+  }
+
+  function loadSubject(subj, cb){
+    if(cache[subj]) return cb();
+    elQ.innerHTML = '<div class="loading">正在载入' + (subj==='math'?'高等数学':'英语') + '题目数据…</div>';
+    const s = document.createElement('script');
+    s.src = 'data-' + subj + '.js';
+    s.onload = ()=>{ cache[subj] = (window.SUBJ_DATA||{})[subj] || {}; cb(); };
+    s.onerror = ()=>{ elQ.innerHTML = '<div class="loading">数据文件加载失败，请确认 data-'+subj+'.js 存在。</div>'; };
+    document.head.appendChild(s);
+  }
+
+  function renderList(){
+    const list = papersOf(subject, category);
+    if(!list.length){ elList.innerHTML = '<div class="side-title">暂无数据</div>'; return; }
+    elList.innerHTML = '<div class="side-title">' + (category==='real'?'按年份（新→旧）':'按编号（01 起') + '</div>' +
+      list.map(p=>{
+        const key = p.category==='real' ? p.year : ('卷 ' + String(p.simNo).padStart(2,'0'));
+        return `<button class="paper-btn ${p.id===currentId?'on':''}" data-id="${p.id}">
+          <span class="yr">${key}</span>
+          <span class="n">${p.count}</span>
+        </button>`;
+      }).join('');
+    elList.querySelectorAll('.paper-btn').forEach(b=>{
+      b.onclick = ()=>{ currentId = b.dataset.id; renderList(); renderPaper(); };
+    });
+    const active = elList.querySelector('.paper-btn.on');
+    if(active) active.scrollIntoView({block:'nearest'});
+  }
+
+  function pickDefault(){
+    const list = papersOf(subject, category);
+    currentId = list.length ? list[0].id : null;
+  }
+
+  function renderPaper(){
+    const p = getPaper(currentId);
+    if(!p){ elHead.innerHTML=''; return; }
+
+    elHead.innerHTML = `
+      <div class="paper-head">
+        <h2>${escapeHtml(p.title)}</h2>
+        <div class="meta">
+          <span>${p.category==='real'?'历年真题':'模拟卷'}</span>
+          <span>题量 <b>${p.count}</b> 道</span>
+          <span>标注总分 <b>${p.officialTotal||150}</b> 分</span>
+          <span>题干标注合计 <b>${p.totalScore}</b> 分</span>
+        </div>
+        <div class="note">个别题目原题库未标注分值（显示“分值未标注”），未做推断补齐。题干与选项中的公式为原站图片，需联网加载。</div>
+      </div>`;
+
+    elQ.innerHTML = p.questions.map(renderQ).join('');
+    bindQ();
+  }
+
+  function renderQ(q){
+    if(keyword && !matches(q, keyword)) return '';
+
+    const opts = q.options.length ? `<div class="opts">${q.options.map(o=>
+      `<div class="opt ${o.correct?'right':''}"><span class="k">${escapeHtml(o.k)}</span><span class="v">${o.html || '（原题未提供该选项内容）'}</span></div>`
+    ).join('')}</div>` : '';
+
+    const ansHtml = q.answerHtml ? `<div>${q.answerHtml}</div>` : '';
+    const ansTxt = q.answer ? escapeHtml(q.answer) : '';
+    const ana = q.analysis ? `<div class="ana"><b>解析：</b>${escapeHtml(q.analysis)}</div>` : '';
+    const stats = q.stats ? `<div class="share">${escapeHtml(q.stats)}</div>` : '';
+
+    return `<article class="q ${showAll?'ans-open':''}">
+      <div class="q-head">
+        <span class="qno">${q.no}</span>
+        <span class="tag ${q.type==='choice'?'choice':''}">${q.type==='choice'?'选择题':'主观题'}</span>
+        <span class="score">${q.score? `<b>${q.score}</b> 分` : '分值未标注'}</span>
+      </div>
+      <div class="stem">${q.stem || '（题干为空）'}</div>
+      ${opts}
+      <div class="ans">
+        <div class="ans-row"><span class="lb">参考答案</span><span class="val">${(ansHtml||ansTxt) || '—（原题库未提供文字答案）'}</span></div>
+        ${ana}${stats}
+      </div>
+      <div class="toolbar" style="margin:12px 0 0">
+        <button class="btn toggle">${showAll?'隐藏答案':'查看答案'}</button>
+      </div>
+    </article>`;
+  }
+
+  function bindQ(){
+    elQ.querySelectorAll('.q').forEach(card=>{
+      const btn = card.querySelector('.toggle');
+      if(!btn) return;
+      btn.onclick = ()=>{
+        const open = card.classList.toggle('ans-open');
+        btn.textContent = open ? '隐藏答案' : '查看答案';
+      };
+    });
+  }
+
+  function matches(q, kw){
+    const k = kw.toLowerCase();
+    const hay = [q.stem, q.answer, q.analysis, (q.options||[]).map(o=>o.html).join(' ')]
+      .join(' ').replace(/<[^>]*>/g,' ').toLowerCase();
+    return hay.includes(k);
+  }
+
+  function escapeHtml(s){
+    return String(s==null?'':s)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function setAll(v){
+    showAll = v;
+    document.getElementById('allAns').checked = v;
+    elQ.querySelectorAll('.q').forEach(c=>c.classList.toggle('ans-open', v));
+    elQ.querySelectorAll('.toggle').forEach(b=>b.textContent = v?'隐藏答案':'查看答案');
+  }
+
+  function refresh(){
+    loadSubject(subject, ()=>{ pickDefault(); renderList(); renderPaper(); });
+  }
+
+  elTabs.querySelectorAll('button').forEach(b=>{
+    b.onclick = ()=>{
+      if(subject===b.dataset.subj) return;
+      subject = b.dataset.subj;
+      elTabs.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x===b));
+      refresh();
+    };
+  });
+  elCat.querySelectorAll('button').forEach(b=>{
+    b.onclick = ()=>{
+      if(category===b.dataset.cat) return;
+      category = b.dataset.cat;
+      elCat.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x===b));
+      pickDefault(); renderList(); renderPaper();
+    };
+  });
+
+  document.getElementById('allAns').onchange = e=>setAll(e.target.checked);
+  document.getElementById('expandAll').onclick = ()=>setAll(true);
+  document.getElementById('collapseAll').onclick = ()=>setAll(false);
+
+  let timer = null;
+  elSearch.oninput = e=>{
+    clearTimeout(timer);
+    timer = setTimeout(()=>{ keyword = e.target.value.trim(); renderPaper(); }, 250);
+  };
+
+  refresh();
+})();
+</script>
+</body>
+</html>
