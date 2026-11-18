@@ -208,7 +208,7 @@
   let currentId = null;
   let showAll = false;
   let keyword = '';
-  const cache = {};           // subject -> {paperId: paper}
+  const PAPERS = (window.PAPERS = window.PAPERS || {});   // paperId -> paper（按套懒加载）
 
   const elTabs = document.getElementById('subjTabs');
   const elCat = document.getElementById('catTabs');
@@ -223,19 +223,28 @@
   function papersOf(subj, cat){
     return META.papers.filter(p=>p.subject===subj && p.category===cat);
   }
-  function getPaper(id){
-    const bundle = cache[subject];
-    return bundle ? bundle[id] : null;
+  function getPaper(id){ return PAPERS[id] || null; }
+
+  // 单套按需加载：papers/<id>.js
+  function loadPaper(id, cb){
+    if (PAPERS[id]) return cb();
+    elHead.innerHTML = '';
+    elQ.innerHTML = '<div class="loading">正在载入题目…</div>';
+    const s = document.createElement('script');
+    s.src = 'papers/' + id + '.js';
+    s.onload = ()=>{
+      if (!PAPERS[id]) { elQ.innerHTML = '<div class="loading">题目数据异常，请刷新重试。</div>'; return; }
+      cb();
+    };
+    s.onerror = ()=>{ elQ.innerHTML = '<div class="loading">题目加载失败，请检查网络后重试。</div>'; };
+    document.head.appendChild(s);
   }
 
-  function loadSubject(subj, cb){
-    if(cache[subj]) return cb();
-    elQ.innerHTML = '<div class="loading">正在载入' + (subj==='math'?'高等数学':'英语') + '题目数据…</div>';
-    const s = document.createElement('script');
-    s.src = 'data-' + subj + '.js';
-    s.onload = ()=>{ cache[subj] = (window.SUBJ_DATA||{})[subj] || {}; cb(); };
-    s.onerror = ()=>{ elQ.innerHTML = '<div class="loading">数据文件加载失败，请确认 data-'+subj+'.js 存在。</div>'; };
-    document.head.appendChild(s);
+  function showPaper(id){
+    currentId = id;
+    renderList();
+    if (!id) { elHead.innerHTML = ''; elQ.innerHTML = ''; return; }
+    loadPaper(id, ()=>renderPaper(id));
   }
 
   function renderList(){
@@ -250,7 +259,7 @@
         </button>`;
       }).join('');
     elList.querySelectorAll('.paper-btn').forEach(b=>{
-      b.onclick = ()=>{ currentId = b.dataset.id; renderList(); renderPaper(); };
+      b.onclick = ()=> showPaper(b.dataset.id);
     });
     const active = elList.querySelector('.paper-btn.on');
     if(active) active.scrollIntoView({block:'nearest'});
@@ -258,12 +267,13 @@
 
   function pickDefault(){
     const list = papersOf(subject, category);
-    currentId = list.length ? list[0].id : null;
+    return list.length ? list[0].id : null;
   }
 
-  function renderPaper(){
-    const p = getPaper(currentId);
-    if(!p){ elHead.innerHTML=''; return; }
+  function renderPaper(pid){
+    if (pid && pid !== currentId) return;   // 已切到别的卷，丢弃过期渲染
+    const p = getPaper(pid || currentId);
+    if(!p){ return; }
 
     elHead.innerHTML = `
       <div class="paper-head">
@@ -341,9 +351,7 @@
     elQ.querySelectorAll('.toggle').forEach(b=>b.textContent = v?'隐藏答案':'查看答案');
   }
 
-  function refresh(){
-    loadSubject(subject, ()=>{ pickDefault(); renderList(); renderPaper(); });
-  }
+  function refresh(){ showPaper(pickDefault()); }
 
   elTabs.querySelectorAll('button').forEach(b=>{
     b.onclick = ()=>{
@@ -358,7 +366,7 @@
       if(category===b.dataset.cat) return;
       category = b.dataset.cat;
       elCat.querySelectorAll('button').forEach(x=>x.classList.toggle('on', x===b));
-      pickDefault(); renderList(); renderPaper();
+      showPaper(pickDefault());
     };
   });
 

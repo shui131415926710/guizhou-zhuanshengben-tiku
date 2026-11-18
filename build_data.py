@@ -162,11 +162,11 @@ def main():
 
     base = os.path.dirname(OUT)
 
-    # 1) 完整数据（单文件，便于二次处理）
+    # 1) 完整数据（单文件，便于二次处理/离线留存）
     with open(OUT, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, separators=(",", ":"))
 
-    # 2) 站点用：meta（不含题目） + 按科目拆分的数据包（按需加载）
+    # 2) 站点用：meta（不含题目）
     meta = {
         "source": payload["source"],
         "generated": payload["generated"],
@@ -178,21 +178,21 @@ def main():
         json.dump(meta, f, ensure_ascii=False, separators=(",", ":"))
         f.write(";\n")
 
-    for subj in sorted({p["subject"] for p in papers}):
-        bundle = {p["id"]: p for p in papers if p["subject"] == subj}
-        path = os.path.join(base, "data-%s.js" % subj)
-        with open(path, "w", encoding="utf-8") as f:
-            f.write("(function(){window.SUBJ_DATA=window.SUBJ_DATA||{};window.SUBJ_DATA[%s]=" % json.dumps(subj))
-            json.dump(bundle, f, ensure_ascii=False, separators=(",", ":"))
+    # 3) 每套试卷一个独立文件（页面按需加载单套，避免一次拉几十 MB）
+    pdir = os.path.join(base, "papers")
+    os.makedirs(pdir, exist_ok=True)
+    for p in papers:
+        with open(os.path.join(pdir, p["id"] + ".js"), "w", encoding="utf-8") as f:
+            f.write("(function(){window.PAPERS=window.PAPERS||{};window.PAPERS[%s]=" % json.dumps(p["id"]))
+            json.dump(p, f, ensure_ascii=False, separators=(",", ":"))
             f.write(";})();\n")
 
     print("papers=%d (real=%d sim=%d) questions=%d" % (len(papers), real_n, sim_n, total_q))
-    for fn in ("data.json", "data-meta.js", "data-math.js", "data-eng.js"):
-        p = os.path.join(base, fn)
-        if os.path.exists(p):
-            print("  %-14s %8.1f KB" % (fn, os.path.getsize(p) / 1024))
-    for p in papers[:6]:
-        print("  %-14s %-5s n=%-3d total=%s" % (p["id"], p["category"], p["count"], p["totalScore"]))
+    print("  meta  %8.1f KB" % (os.path.getsize(os.path.join(base, "data-meta.js")) / 1024))
+    print("  data.json %8.1f KB" % (os.path.getsize(OUT) / 1024))
+    sizes = [os.path.getsize(os.path.join(pdir, p["id"] + ".js")) / 1024 for p in papers]
+    print("  papers/ %d files, avg %.0f KB, max %.0f KB"
+          % (len(sizes), sum(sizes) / len(sizes), max(sizes)))
 
 
 if __name__ == "__main__":
