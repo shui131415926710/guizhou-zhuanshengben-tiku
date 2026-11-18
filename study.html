@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>贵州专升本 · 刷题工作台（草稿纸 / 文章标注）</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --panel:#fff; --ink:#16202b; --ink-2:#4b5a68; --ink-3:#8a97a4;
+    --line:#e3e7ec; --accent:#0f766e; --accent-soft:#e8f5f3; --warn:#9a6b17;
+    --shadow:0 1px 2px rgba(16,32,43,.05), 0 8px 24px rgba(16,32,43,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%}
+  body{background:var(--bg);color:var(--ink);font-size:15px;line-height:1.65;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  button{font-family:inherit}
+
+  .topbar{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+  .topbar-in{max-width:1400px;margin:0 auto;padding:9px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .brand{display:flex;align-items:baseline;gap:9px;margin-right:auto}
+  .brand h1{font-size:16px;margin:0;font-weight:650}
+  .brand span{font-size:12px;color:var(--ink-3)}
+  .tabs{display:flex;background:#eef1f4;border-radius:9px;padding:3px}
+  .tabs button{border:0;background:transparent;padding:6px 13px;border-radius:7px;font-size:13.5px;color:var(--ink-2);cursor:pointer;font-weight:500}
+  .tabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(16,32,43,.1)}
+  .switch{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2);cursor:pointer;user-select:none;white-space:nowrap}
+  .switch input{accent-color:var(--accent);width:15px;height:15px}
+
+  .wrap{max-width:1400px;margin:0 auto;padding:18px 18px 90px;display:grid;grid-template-columns:210px 1fr;gap:18px;align-items:start}
+  @media (max-width:900px){ .wrap{grid-template-columns:1fr} }
+  .side{position:sticky;top:66px}
+  @media (max-width:900px){ .side{position:static} }
+  .side-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px;box-shadow:var(--shadow)}
+  .side-title{font-size:12px;color:var(--ink-3);padding:7px 10px 5px}
+  .paper-scroll{max-height:min(64vh,560px);overflow-y:auto}
+  .paper-btn{display:flex;align-items:center;gap:8px;width:100%;border:0;background:transparent;padding:8px 9px;border-radius:8px;cursor:pointer;text-align:left;font-size:13.5px;color:var(--ink-2)}
+  .paper-btn:hover{background:#f4f6f8}
+  .paper-btn.on{background:var(--accent-soft);color:var(--ink);font-weight:600}
+  .paper-btn .n{margin-left:auto;font-size:11px;color:var(--ink-3);background:#f0f3f5;padding:1px 7px;border-radius:20px}
+
+  .paper-head{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 20px;box-shadow:var(--shadow);margin-bottom:14px}
+  .paper-head h2{margin:0 0 6px;font-size:19px;font-weight:650}
+  .meta{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--ink-3)}
+  .meta b{color:var(--ink-2)}
+
+  .toolbar{display:flex;align-items:center;gap:9px;margin-bottom:12px;flex-wrap:wrap}
+  .btn{border:1px solid var(--line);background:#fff;color:var(--ink-2);border-radius:8px;padding:6px 13px;font-size:13px;cursor:pointer;font-weight:500}
+  .btn:hover{border-color:#cfd6dd;background:#fbfcfd}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn.sm{padding:3px 9px;font-size:12px;border-radius:6px}
+  .search{flex:1;min-width:160px;border:1px solid var(--line);border-radius:8px;padding:7px 11px;font-size:13px;outline:none;background:#fff}
+  .search:focus{border-color:#9ed3cb;box-shadow:0 0 0 3px rgba(15,118,110,.08)}
+
+  .q{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin-bottom:13px;box-shadow:var(--shadow)}
+  .q-head{display:flex;align-items:center;gap:9px;margin-bottom:9px;flex-wrap:wrap}
+  .qno{min-width:28px;height:24px;border-radius:7px;background:#eff3f6;color:var(--ink-2);display:inline-flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:650;padding:0 7px}
+  .tag{font-size:11px;padding:2px 7px;border-radius:20px;background:#f0f3f5;color:var(--ink-3)}
+  .tag.choice{background:#eef4ff;color:#3b62a8}
+  .score{margin-left:auto;font-size:12px;color:var(--ink-3)}
+  .stem{margin:2px 0 8px;overflow-wrap:anywhere}
+  .stem img,.passage img,.opt img,.ans img{max-width:100%;height:auto;vertical-align:middle}
+  .stem p{margin:0}
+  .stem .clear-both{display:none}
+
+  .passage{position:relative;background:#fbfcfd;border:1px solid var(--line);border-left:3px solid #cfe3e0;border-radius:8px;padding:11px 15px 13px;margin:4px 0 10px;font-size:13.6px;color:var(--ink-2);overflow-wrap:anywhere}
+  .passage p{margin:0}
+  .passage .ph{display:flex;align-items:center;gap:7px;margin-bottom:7px;font-size:12px;color:var(--ink-3)}
+  .passage .ph b{color:var(--accent);font-weight:600}
+  .passage .ph .btn{margin-left:auto}
+  .passage.marking{border-color:#f0b8b8;background:#fffdf6;cursor:crosshair}
+  .mark-layer{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;border-radius:8px}
+  .passage.marking .mark-layer{pointer-events:auto}
+
+  .opts{display:flex;flex-direction:column;gap:6px;margin:8px 0 2px}
+  .opt{display:flex;gap:9px;align-items:flex-start;padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:#fbfcfd;font-size:14px}
+  .opt .k{flex:0 0 20px;height:20px;border-radius:50%;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:650;color:var(--ink-2)}
+  .opt .v{flex:1;min-width:0;overflow-wrap:anywhere}
+  .opt .v p{margin:0}
+  .ans-open .opt.right{border-color:#9ed3cb;background:#f0faf8}
+  .ans-open .opt.right .k{background:var(--accent);border-color:var(--accent);color:#fff}
+
+  .ans{margin-top:10px;border-top:1px dashed var(--line);padding-top:10px;display:none}
+  .ans-open .ans{display:block}
+  .ans-row{display:flex;gap:9px;align-items:flex-start;margin-bottom:5px;font-size:13.5px}
+  .ans-row .lb{flex:0 0 auto;font-size:11.5px;color:#0d7a71;background:var(--accent-soft);padding:2px 8px;border-radius:20px;font-weight:600}
+  .ans-row .val{flex:1;min-width:0;overflow-wrap:anywhere}
+  .ans-row .val p{margin:0}
+  .ana{font-size:13px;color:var(--ink-2);background:#fafbfc;border-radius:8px;padding:8px 11px;margin-top:7px;overflow-wrap:anywhere}
+  .share{font-size:11.5px;color:var(--ink-3);margin-top:7px}
+
+  /* ===== 草稿纸 ===== */
+  .board{position:fixed;inset:0;z-index:60;
+    background-color:#fdfdfa;
+    background-image:radial-gradient(#e6e2d8 1px, transparent 1px);
+    background-size:26px 26px;display:none}
+  .board.on{display:block}
+  #boardCanvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:crosshair}
+  .board-bar{position:absolute;left:50%;transform:translateX(-50%);bottom:18px;display:flex;align-items:center;gap:8px;
+    background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:12px;padding:8px 10px;box-shadow:var(--shadow);z-index:5;max-width:calc(100vw - 24px);flex-wrap:wrap}
+  .board-bar .grp{display:flex;align-items:center;gap:5px;padding:0 8px;border-right:1px solid var(--line)}
+  .board-bar .grp:last-child{border-right:0}
+  .sw{width:20px;height:20px;border-radius:50%;border:2px solid transparent;cursor:pointer}
+  .sw.on{border-color:#16202b}
+  .board-bar label{font-size:12px;color:var(--ink-3);display:flex;align-items:center;gap:5px}
+  .board-bar input[type=range]{width:80px}
+  .board-bar .btn.on{background:var(--accent-soft);border-color:#bfe0da;color:#0c6459;font-weight:600}
+
+  .qfloat{position:absolute;right:18px;top:16px;width:min(430px,46vw);background:rgba(255,255,255,.96);
+    border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);z-index:6;display:flex;flex-direction:column;max-height:70vh}
+  .qf-head{display:flex;align-items:center;gap:6px;padding:7px 9px;border-bottom:1px solid var(--line);cursor:move;user-select:none;background:#fff;border-radius:12px 12px 0 0}
+  .qf-head .t{font-size:12.5px;color:var(--ink-2);font-weight:600}
+  .qf-head .grow{flex:1}
+  .qf-body{padding:10px 12px;overflow:auto;font-size:13.5px}
+  .qf-body img{max-width:100%}
+  .qf-body p{margin:0}
+  .qf-nav{display:flex;gap:6px;align-items:center;padding:6px 9px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-3)}
+  .qf-nav .grow{flex:1}
+
+  .hint{font-size:12px;color:var(--ink-3);margin:8px 0 0}
+
+  /* ===== 文章精读 ===== */
+  .reader{position:fixed;inset:0;z-index:70;background:#f7f8fa;display:none;flex-direction:column}
+  .reader.on{display:flex}
+  .rd-top{display:flex;align-items:center;gap:7px;padding:9px 14px;background:#fff;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .rd-top .t{font-size:13.5px;font-weight:600;color:var(--ink);margin-right:auto}
+  .rd-top .grow{flex:1}
+  .rd-main{flex:1;display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:0;min-height:0}
+  @media (max-width:1000px){ .rd-main{grid-template-columns:1fr;grid-template-rows:1fr auto} }
+  .rd-article-wrap{overflow:auto;padding:22px;min-height:0;background:#f7f8fa}
+  .rd-article{position:relative;max-width:820px;margin:0 auto;background:#fffdf8;border:1px solid #e8e2d4;border-radius:10px;
+    padding:22px 28px;font-size:16px;line-height:1.95;color:#1b232b;box-shadow:0 1px 3px rgba(16,32,43,.05);min-height:200px}
+  .rd-article p{margin:0}
+  .rd-article img{max-width:100%}
+  .rd-article .mark-layer{position:absolute;inset:0;width:100%;height:100%;border-radius:10px;pointer-events:auto;cursor:crosshair;touch-action:none}
+  .rd-side{border-left:1px solid var(--line);background:#fff;overflow:auto;padding:14px 16px;min-height:0}
+  @media (max-width:1000px){ .rd-side{border-left:0;border-top:1px solid var(--line);max-height:44vh} }
+  .rd-side .qmini{border-bottom:1px dashed var(--line);padding:10px 0}
+  .rd-side .qmini:last-child{border-bottom:0}
+  .rd-side .qmini .hd{display:flex;gap:7px;align-items:center;font-size:12px;color:var(--ink-3);margin-bottom:5px}
+  .rd-side .qmini .hd .qno{background:#eff3f6;border-radius:6px;padding:1px 7px;color:var(--ink-2);font-weight:650;font-size:11.5px}
+  .rd-side .qmini .hd .tg{font-size:12px;color:var(--ink-2);cursor:pointer;margin-left:auto;border:0;background:none;padding:0;text-decoration:underline}
+  .rd-side .qmini .st{font-size:13.5px;color:var(--ink);margin-bottom:5px}
+  .rd-side .qmini .ops{font-size:13px;color:var(--ink-2);line-height:1.8}
+  .rd-side .qmini .ops span{display:block}
+  .rd-side .qmini .rb{display:none;margin-top:6px;font-size:12.5px;color:#0d7a71;background:var(--accent-soft);border-radius:7px;padding:6px 9px}
+  .rd-side .qmini.open .rb{display:block}
+
+  footer{max-width:1400px;margin:0 auto;padding:0 18px 40px;font-size:12px;color:var(--ink-3);line-height:1.8}
+  .loading{color:var(--ink-3);font-size:13px;padding:22px 0}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-in">
+    <div class="brand">
+      <h1>刷题工作台</h1>
+      <span id="topStat">数学草稿纸 · 英语文章标注</span>
+    </div>
+    <div class="tabs" id="subjTabs">
+      <button data-subj="math" class="on">高等数学</button>
+      <button data-subj="eng">英语</button>
+    </div>
+    <div class="tabs" id="catTabs">
+      <button data-cat="real" class="on">真题</button>
+      <button data-cat="sim">模拟卷</button>
+    </div>
+    <label class="switch"><input type="checkbox" id="allAns">显示全部答案</label>
+    <a class="btn" href="index.html">返回题库</a>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="side">
+    <div class="side-card">
+      <div class="side-title" id="sideTitle">选择试卷</div>
+      <div class="paper-scroll" id="paperList"></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="toolbar">
+      <input class="search" id="search" placeholder="搜索题干 / 选项 / 材料关键词">
+      <button class="btn primary" id="openBoard">打开草稿纸</button>
+      <button class="btn" id="expandAll">展开答案</button>
+      <button class="btn" id="collapseAll">收起答案</button>
+    </div>
+    <div id="paperHead"></div>
+    <div id="questions"><div class="loading">正在载入…</div></div>
+  </div>
+</div>
+
+<footer>
+  数据来源：库课网校 kuke99.com 贵州专升本（历年真题 + 模拟考场）· 手写笔迹与标注仅保存在本机浏览器，不上传。<br>
+  公式与图片直接引用原站 CDN，需要联网；若图片不显示，说明上游资源已变更。
+</footer>
+
+<!-- 草稿纸 -->
+<div class="board" id="board">
+  <canvas id="boardCanvas"></canvas>
+
+  <div class="qfloat" id="qFloat">
+    <div class="qf-head" id="qfHead">
+      <span class="t" id="qfTitle">题目</span>
+      <span class="grow"></span>
+      <button class="btn sm" id="qfClose">收起</button>
+    </div>
+    <div class="qf-body" id="qfBody"></div>
+    <div class="qf-nav">
+      <button class="btn sm" id="qfPrev">上一题</button>
+      <button class="btn sm" id="qfNext">下一题</button>
+      <span class="grow"></span>
+      <label style="display:flex;gap:5px;align-items:center">透明<input type="range" id="qfOpacity" min="30" max="100" value="100" style="width:64px"></label>
+    </div>
+  </div>
+
+  <div class="board-bar">
+    <div class="grp">
+      <button class="btn sm on" id="toolPen">笔</button>
+      <button class="btn sm" id="toolEraser">橡皮</button>
+      <button class="btn sm" id="toolPan">移动</button>
+    </div>
+    <div class="grp" id="colors"></div>
+    <div class="grp">
+      <label>粗细<input type="range" id="penW" min="1" max="24" value="3"></label>
+    </div>
+    <div class="grp">
+      <button class="btn sm" id="undoBtn">撤销</button>
+      <button class="btn sm" id="clearBtn">清空</button>
+      <button class="btn sm" id="saveBtn">导出图片</button>
+    </div>
+    <div class="grp">
+      <label>缩放<span id="zoomTxt" style="color:#4b5a68;font-weight:600">100%</span></label>
+      <button class="btn sm" id="zoomReset">复位</button>
+      <button class="btn sm" id="boardClose">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 文章精读 -->
+<div class="reader" id="reader">
+  <div class="rd-top">
+    <span class="t" id="rdTitle">文章精读</span>
+    <button class="btn sm on" id="rdPen">笔</button>
+    <button class="btn sm" id="rdEraser">橡皮</button>
+    <button class="btn sm" id="rdUndo">撤销</button>
+    <button class="btn sm" id="rdClear">清空</button>
+    <label style="font-size:12px;color:#8a97a4;display:flex;gap:5px;align-items:center">粗细<input type="range" id="rdW" min="1" max="20" value="6" style="width:70px"></label>
+    <div id="rdColors" style="display:flex;gap:5px;align-items:center"></div>
+    <button class="btn sm" id="rdSave">导出</button>
+    <button class="btn sm" id="rdMinus">A−</button>
+    <button class="btn sm" id="rdPlus">A+</button>
+    <button class="btn sm" id="rdClose">关闭</button>
+  </div>
+  <div class="rd-main">
+    <div class="rd-article-wrap">
+      <div class="rd-article" id="rdArticle">
+        <div class="rd-text" id="rdText"></div>
+        <canvas class="mark-layer" id="rdCanvas"></canvas>
+      </div>
+    </div>
+    <aside class="rd-side" id="rdSide"></aside>
+  </div>
+</div>
+
+<script src="data-meta.js"></script>
+<script>
+(function(){
+  const META = window.APP_META;
+  const Q = document.getElementById('questions');
+  if(!META){ Q.textContent = '数据未加载：请确认 data-meta.js 与本页在同一目录。'; return; }
+  const PAPERS = (window.PAPERS = window.PAPERS || {});
+
+  let subject='math', category='real', currentId=null, paper=null;
+  let showAll=false, keyword='';
+  let curQ = 0;                       // 草稿纸浮窗当前题
+
+  const elList=document.getElementById('paperList');
+  const elHead=document.getElementById('paperHead');
+  const elSearch=document.getElementById('search');
+  const elSideTitle=document.getElementById('sideTitle');
+
+  /* ---------- 本地存储 ---------- */
+  const LS = {
+    get(k, d){ try{ const v=localStorage.getItem('sb:'+k); return v?JSON.parse(v):d; }catch(e){ return d; } },
+    set(k, v){ try{ localStorage.setItem('sb:'+k, JSON.stringify(v)); }catch(e){} }
+  };
+
+  /* ---------- 手写板内核 ---------- */
+  function Board(canvas, opt){
+    const ctx = canvas.getContext('2d');
+    const st = {
+      strokes: opt.strokes || [],          // [{c,w,pts:[[nx,ny]...]}] 归一化
+      view: opt.view || {s:1, x:0, y:0},   // 画布视图（世界坐标变换）
+      color: opt.color || '#1f2937',
+      width: opt.width || 3,
+      tool: 'pen',
+      size: {w:0, h:0},
+      dpr: Math.min(window.devicePixelRatio || 1, 2)
+    };
+    const api = { st: st, ctx: ctx, onChange: opt.onChange || function(){} };
+
+    function resize(){
+      const w = canvas.clientWidth || canvas.parentElement.clientWidth;
+      const h = canvas.clientHeight || canvas.parentElement.clientHeight;
+      st.size.w = w; st.size.h = h;
+      canvas.width = Math.round(w * st.dpr);
+      canvas.height = Math.round(h * st.dpr);
+      ctx.setTransform(st.dpr,0,0,st.dpr,0,0);
+      redraw();
+    }
+    api.resize = resize;
+
+    function applyView(){
+      const v = st.view;
+      ctx.setTransform(st.dpr*v.s, 0, 0, st.dpr*v.s, st.dpr*v.x, st.dpr*v.y);
+    }
+    function redraw(){
+      const v = st.view;
+      ctx.setTransform(1,0,0,1,0,0);
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      applyView();
+      st.strokes.forEach(s=>drawStroke(s, false));
+      applyView();
+    }
+    api.redraw = redraw;
+
+    function drawStroke(s, live){
+      ctx.strokeStyle = s.c;
+      ctx.lineWidth = s.w;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      if(s.erased) ctx.globalCompositeOperation = 'destination-out';
+      else ctx.globalCompositeOperation = 'source-over';
+      // 归一化坐标 → 当前视口像素
+      const W = st.size.w, H = st.size.h;
+      if(s.pts.length === 1){
+        const x = s.pts[0][0]*W, y = s.pts[0][1]*H;
+        ctx.beginPath();
+        ctx.arc(x, y, Math.max(0.6, s.w/2), 0, Math.PI*2);
+        ctx.fillStyle = s.c;
+        ctx.fill();
+        ctx.globalCompositeOperation = 'source-over';
+        return;
+      }
+      for(let i=0;i<s.pts.length;i++){
+        const x = s.pts[i][0]*W, y = s.pts[i][1]*H;
+        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    // 屏幕坐标 → 归一化世界坐标
+    function toNorm(cx, cy){
+      const v = st.view;
+      const x = (cx - v.x)/v.s, y = (cy - v.y)/v.s;
+      return [x/st.size.w, y/st.size.h];
+    }
+    function pos(e){
+      const r = canvas.getBoundingClientRect();
+      return [e.clientX - r.left, e.clientY - r.top];
+    }
+
+    let drawing=false, last=null, panning=false, panStart=null;
+
+    canvas.addEventListener('pointerdown', e=>{
+      try{ canvas.setPointerCapture(e.pointerId); }catch(err){}
+      const [x,y] = pos(e);
+      if(st.tool === 'pan'){ panning = true; panStart = {x, y, vx: st.view.x, vy: st.view.y}; return; }
+      drawing = true;
+      const s = {c: st.color, w: st.width, pts: [toNorm(x,y)], erased: st.tool==='eraser'};
+      st.strokes.push(s);
+      last = s;
+      redraw();
+    });
+
+    canvas.addEventListener('pointermove', e=>{
+      const [x,y] = pos(e);
+      if(panning){ st.view.x = panStart.vx + (x - panStart.x); st.view.y = panStart.vy + (y - panStart.y); redraw(); return; }
+      if(!drawing || !last) return;
+      let evs = [];
+      try{ evs = e.getCoalescedEvents ? e.getCoalescedEvents() : []; }catch(err){ evs = []; }
+      if(!evs.length) evs = [e];
+      const r2 = canvas.getBoundingClientRect();
+      // 忽略重复点
+      evs.forEach(ev=>{
+        const nx = (ev.clientX - r2.left), ny = (ev.clientY - r2.top);
+        if(e._lx === nx && e._ly === ny) return;
+        last.pts.push(toNorm(nx, ny));
+      });
+      // 压感：有 pressure 时按力度调宽
+      if(e.pressure && e.pointerType === 'pen'){
+        last.w = Math.max(1, st.width * (0.45 + e.pressure * 1.1));
+      }
+      redraw();
+    });
+
+    function end(){
+      if(drawing){ drawing = false; last = null; api.onChange(); }
+      if(panning){ panning = false; }
+    }
+    canvas.addEventListener('pointerup', end);
+    canvas.addEventListener('pointercancel', end);
+
+    canvas.addEventListener('wheel', e=>{
+      if(!e.ctrlKey && !e.metaKey && !opt.alwaysZoom) return;
+      e.preventDefault();
+      const [x,y] = pos(e);
+      const old = st.view.s;
+      const next = Math.min(4, Math.max(0.4, old * (e.deltaY < 0 ? 1.12 : 0.9)));
+      st.view.x = x - (x - st.view.x) * (next/old);
+      st.view.y = y - (y - st.view.y) * (next/old);
+      st.view.s = next;
+      redraw();
+      if(api.onZoom) api.onZoom(next);
+    }, {passive:false});
+
+    api.undo = function(){ st.strokes.pop(); redraw(); api.onChange(); };
+    api.clear = function(){ st.strokes.length = 0; redraw(); api.onChange(); };
+    api.redraw = redraw;
+    api.setTool = t=>{ st.tool = t; canvas.style.cursor = t==='pan'?'grab':(t==='eraser'?'cell':'crosshair'); };
+    api.setColor = c=>{ st.color = c; };
+    api.setWidth = w=>{ st.width = w; };
+    api.exportPNG = function(){
+      const tmp = document.createElement('canvas');
+      tmp.width = canvas.width; tmp.height = canvas.height;
+      const tc = tmp.getContext('2d');
+      tc.fillStyle = getComputedStyle(canvas.parentElement).backgroundColor || '#fff';
+      tc.fillRect(0,0,tmp.width,tmp.height);
+      tc.drawImage(canvas,0,0);
+      const a = document.createElement('a');
+      a.download = (opt.name || 'board') + '.png';
+      a.href = tmp.toDataURL('image/png');
+      a.click();
+    };
+    resize();
+    return api;
+  }
+
+  /* ---------- 草稿纸 ---------- */
+  const boardEl = document.getElementById('board');
+  const boardCanvas = document.getElementById('boardCanvas');
+  let board = null, boardKey = null;
+
+  const COLORS = ['#1f2937','#c0392b','#1d4ed8','#0f766e','#b45309','#7c3aed'];
+  const elColors = document.getElementById('colors');
+  COLORS.forEach((c,i)=>{
+    const sw=document.createElement('button');
+    sw.className='sw'+(i===0?' on':''); sw.style.background=c; sw.dataset.c=c;
+    sw.onclick=()=>{ elColors.querySelectorAll('.sw').forEach(x=>x.classList.remove('on')); sw.classList.add('on'); if(board) board.setColor(c); };
+    elColors.appendChild(sw);
+  });
+
+  function curPaperKey(){ return (currentId||'') + ':' + (paper ? paper.questions[curQ].no : 0); }
+
+  function openBoard(idx){
+    if(!paper){ return; }
+    curQ = Math.max(0, Math.min(idx, paper.questions.length-1));
+    boardEl.classList.add('on');
+    const key = (currentId||'') + ':' + paper.questions[curQ].no;
+    if(!board || boardKey !== key){
+      const saved = LS.get('board:'+key, {strokes:[], view:{s:1,x:0,y:0}});
+      board = Board(boardCanvas, {
+        strokes: saved.strokes, view: saved.view, color: currentColor(),
+        width: +document.getElementById('penW').value,
+        name: (paper.title||'') + '-' + paper.questions[curQ].no,
+        onChange: ()=>LS.set('board:'+(currentId||'')+':'+paper.questions[curQ].no,
+                              {strokes: board.st.strokes, view: board.st.view})
+      });
+      boardKey = key;
+    } else {
+      board.resize();
+    }
+    renderFloat();
+    setTimeout(()=>board.resize(), 30);
+  }
+  function currentColor(){ const on=document.querySelector('#colors .sw.on'); return on?on.dataset.c:'#1f2937'; }
+
+  function closeBoard(){
+    if(board){ LS.set('board:'+(currentId||'')+':'+paper.questions[curQ].no, {strokes: board.st.strokes, view: board.st.view}); }
+    boardEl.classList.remove('on');
+  }
+
+  document.getElementById('openBoard').onclick = ()=>{
+    if(!paper){ return; }
+    // 找到页面上第一道可见题为起点
+    openBoard(curQ);
+  };
+  document.getElementById('boardClose').onclick = closeBoard;
+  document.getElementById('toolPen').onclick = ()=>{ board && board.setTool('pen'); toolBtn('toolPen'); };
+  document.getElementById('toolEraser').onclick = ()=>{ board && board.setTool('eraser'); toolBtn('toolEraser'); };
+  document.getElementById('toolPan').onclick = ()=>{ board && board.setTool('pan'); toolBtn('toolPan'); };
+  function toolBtn(id){ ['toolPen','toolEraser','toolPan'].forEach(x=>document.getElementById(x).classList.toggle('on', x===id)); }
+  document.getElementById('penW').oninput = e=>{ board && board.setWidth(+e.target.value); };
+  document.getElementById('undoBtn').onclick = ()=>board && board.undo();
+  document.getElementById('clearBtn').onclick = ()=>{
+    if(!board) return;
+    if(!confirm('清空当前这道题的草稿？')) return;
+    board.clear();
+  };
+  document.getElementById('saveBtn').onclick = ()=>board && board.exportPNG();
+  document.getElementById('zoomReset').onclick = ()=>{
+    if(!board) return;
+    board.st.view = {s:1,x:0,y:0}; board.redraw(); document.getElementById('zoomTxt').textContent='100%';
+  };
+
+  /* 题目浮窗 */
+  const qFloat = document.getElementById('qFloat');
+  const qfBody = document.getElementById('qfBody');
+  const qfTitle = document.getElementById('qfTitle');
+
+  function renderFloat(){
+    if(!paper) return;
+    const q = paper.questions[curQ];
+    qfTitle.textContent = '第 ' + q.no + ' 题 / 共 ' + paper.questions.length;
+    let html = '';
+    if(q.material){ html += '<div class="passage" style="margin-bottom:8px">' + q.material + '</div>'; }
+    html += '<div class="stem">' + (q.stem || '（题干为空）') + '</div>';
+    if(q.options && q.options.length){
+      html += '<div class="opts">' + q.options.map(o=>
+        '<div class="opt"><span class="k">'+esc(o.k)+'</span><span class="v">'+(o.html||'')+'</span></div>').join('') + '</div>';
+    }
+    qfBody.innerHTML = html;
+    qfBody.scrollTop = 0;
+  }
+
+  document.getElementById('qfPrev').onclick = ()=>{ if(curQ>0){ saveBoardState(); curQ--; reopen(); } };
+  document.getElementById('qfNext').onclick = ()=>{ if(paper && curQ<paper.questions.length-1){ saveBoardState(); curQ++; reopen(); } };
+  function saveBoardState(){ if(board) LS.set('board:'+(currentId||'')+':'+paper.questions[curQ].no, {strokes: board.st.strokes, view: board.st.view}); }
+  function reopen(){ board=null; boardKey=null; openBoard(curQ); }
+  document.getElementById('qfClose').onclick = ()=>{ qFloat.style.display='none'; };
+  document.getElementById('qfOpacity').oninput = e=>{ qFloat.style.opacity = e.target.value/100; };
+
+  // 浮窗拖动
+  (function(){
+    let dx=0, dy=0, moving=false;
+    const head = document.getElementById('qfHead');
+    head.addEventListener('pointerdown', e=>{
+      if(e.target.tagName === 'BUTTON') return;
+      const r = qFloat.getBoundingClientRect();
+      moving = true; dx = e.clientX - r.left; dy = e.clientY - r.top;
+      qFloat.style.left = r.left+'px'; qFloat.style.top = r.top+'px';
+      qFloat.style.right='auto';
+      head.setPointerCapture(e.pointerId);
+    });
+    head.addEventListener('pointermove', e=>{
+      if(!moving) return;
+      qFloat.style.left = Math.max(0, Math.min(window.innerWidth-120, e.clientX-dx)) + 'px';
+      qFloat.style.top  = Math.max(0, Math.min(window.innerHeight-80,  e.clientY-dy)) + 'px';
+    });
+    head.addEventListener('pointerup', ()=>{ moving=false; });
+  })();
+
+  /* ---------- 文章标注 ---------- */
+  const markBoards = new WeakMap();
+
+  function initMarks(){
+    Q.querySelectorAll('.passage .mark-layer').forEach(cv=>{
+      if(cv.dataset.init) return;
+      cv.dataset.init = '1';
+      const host = cv.closest('.passage');
+      const key = host.dataset.key;
+      cv.parentElement.style.position = 'relative';
+      const b = Board(cv, {
+        strokes: LS.get('mark:'+key, []),
+        width: 5,
+        color: '#c0392b',
+        onChange: ()=> LS.set('mark:'+key, b.st.strokes)
+      });
+      markBoards.set(cv, b);
+      const fit = ()=>{ const h = host.querySelector('.pbody').clientHeight; cv.parentElement.style.height = h + 'px'; cv.style.height = h + 'px'; b.resize(); };
+      setTimeout(fit, 30);
+      new ResizeObserver(fit).observe(host.querySelector('.pbody'));
+    });
+  }
+
+  /* ---------- 文章精读（材料抽离 + 圈画标注） ---------- */
+  const readerEl = document.getElementById('reader');
+  let rdBoard = null, rdKey = null, rdRO = null;
+
+  function matHash(m){
+    const s = String(m || '').replace(/<[^>]*>/g,'').replace(/\s+/g,'').slice(0,140);
+    let h = 5381;
+    for(let i=0;i<s.length;i++) h = (((h<<5) + h) + s.charCodeAt(i)) >>> 0;
+    return h.toString(36);
+  }
+
+  const RD_COLORS = ['#c0392b','#b45309','#1d4ed8','#0f766e','#111827'];
+  (function(){
+    const box = document.getElementById('rdColors');
+    RD_COLORS.forEach((c,i)=>{
+      const sw = document.createElement('button');
+      sw.className = 'sw' + (i===0 ? ' on' : ''); sw.style.background = c; sw.dataset.c = c;
+      sw.onclick = ()=>{ box.querySelectorAll('.sw').forEach(x=>x.classList.remove('on')); sw.classList.add('on'); rdBoard && rdBoard.setColor(c); };
+      box.appendChild(sw);
+    });
+  })();
+
+  function openReader(idx){
+    if(!paper) return;
+    const q = paper.questions[idx];
+    if(!q.material){ alert('这道题没有阅读材料。'); return; }
+    const mat = q.material;
+    rdKey = (currentId || '') + ':m' + matHash(mat);
+
+    document.getElementById('rdText').innerHTML = mat;
+    document.getElementById('rdTitle').textContent = (paper.title || '') + ' · 文章精读（第 ' + q.no + ' 题材料）';
+
+    const grp = paper.questions.filter(x => x.material === mat);
+    document.getElementById('rdSide').innerHTML = grp.map(qq=>`
+      <div class="qmini" data-no="${qq.no}">
+        <div class="hd"><span class="qno">${qq.no}</span><span>${qq.score?qq.score+' 分':''}</span><button class="tg">答案</button></div>
+        <div class="st">${qq.stem || '（题干为空）'}</div>
+        <div class="ops">${(qq.options||[]).map(o=>`<span>${esc(o.k)}. ${o.html||''}</span>`).join('')}</div>
+        <div class="rb"><b>答案：</b>${(qq.answerHtml || esc(qq.answer) || '—')}${qq.analysis ? '<br><b>解析：</b>'+esc(qq.analysis) : ''}</div>
+      </div>`).join('') || '<div class="hint">该材料没有对应题目</div>';
+
+    document.querySelectorAll('#rdSide .tg').forEach(b=>{
+      b.onclick = ()=> b.closest('.qmini').classList.toggle('open');
+    });
+
+    readerEl.classList.add('on');
+    const saved = LS.get('mark:' + rdKey, null);
+    const strokes = Array.isArray(saved) ? saved : ((saved && saved.strokes) || []);
+    const view = (saved && saved.view) || {s:1, x:0, y:0};
+    rdBoard = Board(document.getElementById('rdCanvas'), {
+      strokes: strokes, view: view, color: '#c0392b',
+      width: +document.getElementById('rdW').value,
+      name: 'mark-' + (paper.title||''),
+      onChange: ()=> LS.set('mark:' + rdKey, {strokes: rdBoard.st.strokes, view: rdBoard.st.view})
+    });
+    rdBoard.setTool('pen');
+    setTimeout(()=>rdBoard && rdBoard.resize(), 40);
+    if(rdRO) rdRO.disconnect();
+    rdRO = new ResizeObserver(()=>{ if(rdBoard) rdBoard.resize(); });
+    rdRO.observe(document.getElementById('rdArticle'));
+    applyFs(rfs);
+  }
+
+  function closeReader(){
+    if(rdBoard && rdKey) LS.set('mark:' + rdKey, {strokes: rdBoard.st.strokes, view: rdBoard.st.view});
+    readerEl.classList.remove('on');
+    rdBoard = null; rdKey = null;
+  }
+
+  document.getElementById('rdClose').onclick = closeReader;
+  document.getElementById('rdPen').onclick = ()=>{ rdBoard && rdBoard.setTool('pen'); rdTool('rdPen'); };
+  document.getElementById('rdEraser').onclick = ()=>{ rdBoard && rdBoard.setTool('eraser'); rdTool('rdEraser'); };
+  function rdTool(id){ ['rdPen','rdEraser'].forEach(x=>document.getElementById(x).classList.toggle('on', x===id)); }
+  document.getElementById('rdUndo').onclick = ()=> rdBoard && rdBoard.undo();
+  document.getElementById('rdClear').onclick = ()=>{ if(rdBoard && confirm('清除这篇文章的标注？')) rdBoard.clear(); };
+  document.getElementById('rdW').oninput = e=> rdBoard && rdBoard.setWidth(+e.target.value);
+  document.getElementById('rdSave').onclick = ()=> rdBoard && rdBoard.exportPNG();
+
+  // 正文字号调节（记忆到本机）
+  let rfs = +(localStorage.getItem('sb:rfs') || 16);
+  function applyFs(v){
+    rfs = Math.min(24, Math.max(13, v));
+    document.querySelector('.rd-article').style.fontSize = rfs + 'px';
+    try{ localStorage.setItem('sb:rfs', String(rfs)); }catch(e){}
+  }
+  document.getElementById('rdPlus').onclick = ()=> applyFs(rfs + 1);
+  document.getElementById('rdMinus').onclick = ()=> applyFs(rfs - 1);
+
+  /* ---------- 渲染 ---------- */
+  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function qCard(q, idx){
+    const mat = q.material ? `<div class="passage">
+        <div class="ph"><b>材料</b>原文可按行阅读并圈画重点
+          <button class="btn sm mbtn" data-idx="${idx}">精读 / 标注</button>
+        </div>
+        <div class="pbody">${q.material}</div>
+      </div>` : '';
+    const opts = q.options && q.options.length ? `<div class="opts">${q.options.map(o=>
+      `<div class="opt ${o.correct?'right':''}"><span class="k">${esc(o.k)}</span><span class="v">${o.html||'（原题未提供该选项内容）'}</span></div>`).join('')}</div>` : '';
+    const ansHtml = q.answerHtml ? `<div>${q.answerHtml}</div>` : '';
+    const ansTxt = q.answer ? esc(q.answer) : '';
+    const ana = q.analysis ? `<div class="ana"><b>解析：</b>${esc(q.analysis)}</div>` : '';
+    const stats = q.stats ? `<div class="share">${esc(q.stats)}</div>` : '';
+    return `<article class="q ${showAll?'ans-open':''}" data-idx="${idx}" data-no="${q.no}">
+      <div class="q-head">
+        <span class="qno">${q.no}</span>
+        <span class="tag ${q.type==='choice'?'choice':''}">${q.type==='choice'?'选择题':'主观题'}</span>
+        <span class="score">${q.score? `<b>${q.score}</b> 分` : '分值未标注'}</span>
+        <button class="btn sm draft" data-idx="${idx}">草稿纸</button>
+      </div>
+      ${mat}
+      <div class="stem">${q.stem || '（题干为空）'}</div>
+      ${opts}
+      <div class="ans">
+        <div class="ans-row"><span class="lb">参考答案</span><span class="val">${(ansHtml||ansTxt)||'—（原题库未提供文字答案）'}</span></div>
+        ${ana}${stats}
+      </div>
+      <div class="toolbar" style="margin:10px 0 0">
+        <button class="btn sm toggle">${showAll?'隐藏答案':'查看答案'}</button>
+      </div>
+    </article>`;
+  }
+
+  function renderPaper(){
+    if(!paper) return;
+    elHead.innerHTML = `<div class="paper-head">
+      <h2>${esc(paper.title)}</h2>
+      <div class="meta"><span>${paper.category==='real'?'历年真题':'模拟卷'}</span>
+        <span>题量 <b>${paper.count}</b></span>
+        <span>标注总分 <b>${paper.officialTotal||150}</b></span>
+        <span>科目 <b>${paper.subjectName}</b></span></div>
+      </div>`;
+    Q.innerHTML = paper.questions.map((q,i)=>qCard(q,i)).join('');
+    bind();
+    initMarks();
+  }
+
+  function bind(){
+    Q.querySelectorAll('.q').forEach(card=>{
+      const i = +card.dataset.idx;
+      const t = card.querySelector('.toggle');
+      t && (t.onclick = ()=>{ const on = card.classList.toggle('ans-open'); t.textContent = on?'隐藏答案':'查看答案'; });
+      const d = card.querySelector('.draft');
+      d && (d.onclick = ()=>openBoard(i));
+      const mb = card.querySelector('.mbtn');
+      if(mb) mb.onclick = ()=>openReader(i);
+    });
+  }
+
+  function matches(q, kw){
+    const k = kw.toLowerCase();
+    return [q.stem,q.analysis,q.answer,q.material,(q.options||[]).map(o=>o.html).join(' ')]
+      .join(' ').replace(/<[^>]*>/g,' ').toLowerCase().includes(k);
+  }
+
+  /* ---------- 数据加载 ---------- */
+  function papersOf(s,c){ return META.papers.filter(p=>p.subject===s && p.category===c); }
+
+  function renderList(){
+    const list = papersOf(subject, category);
+    elSideTitle.textContent = (subject==='math'?'高等数学':'英语') + ' / ' + (category==='real'?'历年真题':'模拟卷');
+    elList.innerHTML = list.map(p=>{
+      const k = p.category==='real' ? p.year : ('卷 '+String(p.simNo).padStart(2,'0'));
+      return `<button class="paper-btn ${p.id===currentId?'on':''}" data-id="${p.id}"><span>${k}</span><span class="n">${p.count}</span></button>`;
+    }).join('') || '<div class="side-title">暂无</div>';
+    elList.querySelectorAll('.paper-btn').forEach(b=>b.onclick = ()=>openPaper(b.dataset.id));
+  }
+
+  function loadPaper(id, cb){
+    if(PAPERS[id]) return cb();
+    Q.innerHTML = '<div class="loading">正在载入题目…</div>';
+    const s = document.createElement('script');
+    s.src = 'papers/' + id + '.js';
+    s.onload = ()=> cb();
+    s.onerror = ()=>{ Q.innerHTML = '<div class="loading">加载失败，请检查网络。</div>'; };
+    document.head.appendChild(s);
+  }
+
+  function openPaper(id){
+    currentId = id; curQ = 0; board = null; boardKey = null;
+    renderList();
+    if(!id){ Q.innerHTML=''; return; }
+    loadPaper(id, ()=>{
+      paper = PAPERS[id];
+      renderPaper();
+      autoOpen();
+    });
+  }
+
+  // 支持直达链接：?paper=eng-2024&open=reader&q=31  /  ?open=board
+  function autoOpen(){
+    const p = new URLSearchParams(location.search);
+    const mode = p.get('open');
+    if(!mode || !paper) return;
+    const qno = +p.get('q');
+    let idx = 0;
+    if(qno){ const i = paper.questions.findIndex(x=>x.no===qno); if(i>=0) idx = i; }
+    if(mode === 'reader'){
+      let i = idx;
+      if(!paper.questions[i] || !paper.questions[i].material){
+        i = paper.questions.findIndex(x=>x.material);
+      }
+      if(i >= 0) setTimeout(()=>openReader(i), 300);
+    } else if(mode === 'board'){
+      setTimeout(()=>openBoard(idx), 300);
+    }
+  }
+
+  function pickDefault(){
+    const want = new URLSearchParams(location.search).get('paper');
+    const l = papersOf(subject, category);
+    if(want && l.some(p=>p.id===want)) return want;
+    return l.length ? l[0].id : null;
+  }
+
+  document.querySelectorAll('#subjTabs button').forEach(b=>{
+    b.onclick = ()=>{
+      if(subject===b.dataset.subj) return;
+      subject = b.dataset.subj;
+      document.querySelectorAll('#subjTabs button').forEach(x=>x.classList.toggle('on', x===b));
+      openPaper(pickDefault());
+      document.getElementById('openBoard').textContent = subject==='math' ? '打开草稿纸' : '打开草稿纸（写笔记）';
+    };
+  });
+  document.querySelectorAll('#catTabs button').forEach(b=>{
+    b.onclick = ()=>{
+      if(category===b.dataset.cat) return;
+      category = b.dataset.cat;
+      document.querySelectorAll('#catTabs button').forEach(x=>x.classList.toggle('on', x===b));
+      openPaper(pickDefault());
+    };
+  });
+
+  document.getElementById('allAns').onchange = e=>{
+    showAll = e.target.checked;
+    Q.querySelectorAll('.q').forEach(c=>c.classList.toggle('ans-open', showAll));
+    Q.querySelectorAll('.toggle').forEach(b=>b.textContent = showAll?'隐藏答案':'查看答案');
+  };
+  document.getElementById('expandAll').onclick = ()=>{ document.getElementById('allAns').checked=true; document.getElementById('allAns').onchange({target:{checked:true}}); };
+  document.getElementById('collapseAll').onclick = ()=>{ document.getElementById('allAns').checked=false; document.getElementById('allAns').onchange({target:{checked:false}}); };
+
+  let timer=null;
+  elSearch.oninput = e=>{
+    clearTimeout(timer);
+    timer = setTimeout(()=>{
+      keyword = e.target.value.trim();
+      if(!paper) return;
+      if(!keyword){ renderPaper(); return; }
+      const hits = paper.questions.filter(q=>matches(q, keyword));
+      Q.innerHTML = hits.length ? hits.map(q=>qCard(q, paper.questions.indexOf(q))).join('') : '<div class="loading">没有匹配的题目</div>';
+      initMarks();
+    }, 220);
+  };
+
+  window.addEventListener('resize', ()=>{
+    markBoards && Q.querySelectorAll('.mark-layer').forEach(cv=>{ const b = markBoards.get(cv); b && b.resize(); });
+    board && boardEl.classList.contains('on') && board.resize();
+  });
+
+  document.addEventListener('keydown', e=>{
+    if(e.key === 'Escape'){
+      if(readerEl.classList.contains('on')){ closeReader(); return; }
+      if(boardEl.classList.contains('on')){ closeBoard(); return; }
+    }
+    if(!boardEl.classList.contains('on')) return;
+    if(e.key === 'z' && (e.ctrlKey||e.metaKey)){ e.preventDefault(); board && board.undo(); }
+  });
+
+  // 支持 ?paper=eng-2024 直达：自动切到对应科目与类别
+  (function initFromUrl(){
+    const want = new URLSearchParams(location.search).get('paper');
+    if(!want) return;
+    const meta = (META.papers || []).find(p=>p.id === want);
+    if(!meta) return;
+    subject = meta.subject; category = meta.category;
+    document.querySelectorAll('#subjTabs button').forEach(x=>x.classList.toggle('on', x.dataset.subj === subject));
+    document.querySelectorAll('#catTabs button').forEach(x=>x.classList.toggle('on', x.dataset.cat === category));
+  })();
+
+  openPaper(pickDefault());
+})();
+</script>
+</body>
+</html>
