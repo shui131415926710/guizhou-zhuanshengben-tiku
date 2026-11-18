@@ -78,7 +78,12 @@
   .passage.marking .mark-layer{pointer-events:auto}
 
   .opts{display:flex;flex-direction:column;gap:6px;margin:8px 0 2px}
-  .opt{display:flex;gap:9px;align-items:flex-start;padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:#fbfcfd;font-size:14px}
+  .opt{display:flex;gap:9px;align-items:flex-start;padding:8px 11px;border:1px solid var(--line);border-radius:8px;background:#fbfcfd;font-size:14px;cursor:pointer;transition:border-color .12s,background .12s}
+  .opt:hover{border-color:#c9d6e3;background:#f7fafc}
+  .opt.sel{border-color:#7aa7ff;background:#f1f7ff}
+  .opt.sel .k{background:#3b62a8;border-color:#3b62a8;color:#fff}
+  .ans-open .opt.wrong{border-color:#e0a2a2;background:#fdf2f2}
+  .ans-open .opt.wrong .k{background:#c0392b;border-color:#c0392b;color:#fff}
   .opt .k{flex:0 0 20px;height:20px;border-radius:50%;background:#fff;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:650;color:var(--ink-2)}
   .opt .v{flex:1;min-width:0;overflow-wrap:anywhere}
   .opt .v p{margin:0}
@@ -148,6 +153,9 @@
   .rd-side .qmini .st{font-size:13.5px;color:var(--ink);margin-bottom:5px}
   .rd-side .qmini .ops{font-size:13px;color:var(--ink-2);line-height:1.8}
   .rd-side .qmini .ops span{display:block}
+  .rd-side .qmini .ops span.ropt{padding:2px 5px;margin:1px 0;border-radius:5px;cursor:pointer}
+  .rd-side .qmini .ops span.ropt:hover{background:#f3f7fb}
+  .rd-side .qmini .ops span.ropt.sel{background:#eaf2ff;color:#2b4f92;font-weight:600}
   .rd-side .qmini .rb{display:none;margin-top:6px;font-size:12.5px;color:#0d7a71;background:var(--accent-soft);border-radius:7px;padding:6px 9px}
   .rd-side .qmini.open .rb{display:block}
 
@@ -525,11 +533,34 @@
     if(q.material){ html += '<div class="passage" style="margin-bottom:8px">' + q.material + '</div>'; }
     html += '<div class="stem">' + (q.stem || '（题干为空）') + '</div>';
     if(q.options && q.options.length){
+      const pick = getPick(q.no);
       html += '<div class="opts">' + q.options.map(o=>
-        '<div class="opt"><span class="k">'+esc(o.k)+'</span><span class="v">'+optText(o)+'</span></div>').join('') + '</div>';
+        '<div class="'+optClass(o, pick, q)+'" data-k="'+esc(o.k)+'"><span class="k">'+esc(o.k)+'</span><span class="v">'+optText(o)+'</span></div>').join('') + '</div>';
     }
     qfBody.innerHTML = html;
     qfBody.scrollTop = 0;
+    qfBody.querySelectorAll('.opt').forEach(el=>{
+      el.onclick = ()=>{
+        const qq = paper.questions[curQ];
+        if(qq.type !== 'choice') return;
+        pickOption(qq, el.dataset.k);
+      };
+    });
+  }
+
+  function refreshOpts(container, q){
+    container.querySelectorAll('.opt').forEach(el=>{
+      const o = (q.options || []).find(x=>x.k === el.dataset.k);
+      if(!o) return;
+      el.className = optClass(o, getPick(q.no), q);
+    });
+  }
+
+  function pickOption(q, k){
+    setPick(q.no, k);
+    refreshOpts(qfBody, q);
+    const card = Q.querySelector('.q[data-no="' + q.no + '"]');
+    if(card) refreshOpts(card, q);
   }
 
   document.getElementById('qfPrev').onclick = ()=>{ if(curQ>0){ saveBoardState(); curQ--; reopen(); } };
@@ -619,12 +650,25 @@
       <div class="qmini" data-no="${qq.no}">
         <div class="hd"><span class="qno">${qq.no}</span><span>${qq.score?qq.score+' 分':''}</span><button class="tg">答案</button></div>
         <div class="st">${qq.stem || '（题干为空）'}</div>
-        <div class="ops">${(qq.options||[]).map(o=>`<span>${esc(o.k)}. ${optText(o)}</span>`).join('')}</div>
+        <div class="ops">${(qq.options||[]).map(o=>`<span class="ropt ${getPick(qq.no)===o.k?'sel':''}" data-k="${esc(o.k)}">${esc(o.k)}. ${optText(o)}</span>`).join('')}</div>
         <div class="rb"><b>答案：</b>${(qq.answerHtml || esc(qq.answer) || '—')}${qq.analysis ? '<br><b>解析：</b>'+esc(qq.analysis) : ''}</div>
       </div>`).join('') || '<div class="hint">该材料没有对应题目</div>';
 
     document.querySelectorAll('#rdSide .tg').forEach(b=>{
       b.onclick = ()=> b.closest('.qmini').classList.toggle('open');
+    });
+    document.querySelectorAll('#rdSide .ropt').forEach(el=>{
+      el.onclick = ()=>{
+        const no = +el.closest('.qmini').dataset.no;
+        const qq = paper.questions.find(x=>x.no === no);
+        if(!qq) return;
+        setPick(qq.no, el.dataset.k);
+        const box = el.parentElement;
+        box.querySelectorAll('.ropt').forEach(x=>x.classList.toggle('sel', x.dataset.k === el.dataset.k));
+        refreshOpts(qfBody, qq);
+        const card = Q.querySelector('.q[data-no="' + qq.no + '"]');
+        if(card) refreshOpts(card, qq);
+      };
     });
 
     readerEl.classList.add('on');
@@ -681,6 +725,17 @@
     return raw;
   }
 
+  function getPick(no){ return LS.get('pick:' + (currentId||'') + ':' + no, null); }
+  function setPick(no, k){ LS.set('pick:' + (currentId||'') + ':' + no, k); }
+
+  function optClass(o, pick, q){
+    let c = 'opt';
+    if(o.correct) c += ' right';
+    if(pick === o.k) c += ' sel';
+    if(pick && pick !== o.k && !o.correct) c += ' wrong';
+    return c;
+  }
+
   function qCard(q, idx){
     const mat = q.material ? `<div class="passage">
         <div class="ph"><b>材料</b>原文可按行阅读并圈画重点
@@ -688,8 +743,9 @@
         </div>
         <div class="pbody">${q.material}</div>
       </div>` : '';
+    const pick = getPick(q.no);
     const opts = q.options && q.options.length ? `<div class="opts">${q.options.map(o=>
-      `<div class="opt ${o.correct?'right':''}"><span class="k">${esc(o.k)}</span><span class="v">${optText(o)}</span></div>`).join('')}</div>` : '';
+      `<div class="${optClass(o, pick, q)}" data-k="${esc(o.k)}"><span class="k">${esc(o.k)}</span><span class="v">${optText(o)}</span></div>`).join('')}</div>` : '';
     const ansHtml = q.answerHtml ? `<div>${q.answerHtml}</div>` : '';
     const ansTxt = q.answer ? esc(q.answer) : '';
     const ana = q.analysis ? `<div class="ana"><b>解析：</b>${esc(q.analysis)}</div>` : '';
@@ -735,6 +791,12 @@
       t && (t.onclick = ()=>{ const on = card.classList.toggle('ans-open'); t.textContent = on?'隐藏答案':'查看答案'; });
       const d = card.querySelector('.draft');
       d && (d.onclick = ()=>openBoard(i));
+      const qq = paper ? paper.questions[i] : null;
+      if(qq && qq.type === 'choice'){
+        card.querySelectorAll('.opt').forEach(el=>{
+          el.onclick = ()=> pickOption(qq, el.dataset.k);
+        });
+      }
       const mb = card.querySelector('.mbtn');
       if(mb) mb.onclick = ()=>openReader(i);
     });
