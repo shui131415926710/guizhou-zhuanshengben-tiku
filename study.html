@@ -53,6 +53,7 @@
   .btn:hover{border-color:#cfd6dd;background:#fbfcfd}
   .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
   .btn.sm{padding:3px 9px;font-size:12px;border-radius:6px}
+  .ph-note{color:#9aa6b2;font-size:12px}
   .search{flex:1;min-width:160px;border:1px solid var(--line);border-radius:8px;padding:7px 11px;font-size:13px;outline:none;background:#fff}
   .search:focus{border-color:#9ed3cb;box-shadow:0 0 0 3px rgba(15,118,110,.08)}
 
@@ -525,7 +526,7 @@
     html += '<div class="stem">' + (q.stem || '（题干为空）') + '</div>';
     if(q.options && q.options.length){
       html += '<div class="opts">' + q.options.map(o=>
-        '<div class="opt"><span class="k">'+esc(o.k)+'</span><span class="v">'+(o.html||'')+'</span></div>').join('') + '</div>';
+        '<div class="opt"><span class="k">'+esc(o.k)+'</span><span class="v">'+optText(o)+'</span></div>').join('') + '</div>';
     }
     qfBody.innerHTML = html;
     qfBody.scrollTop = 0;
@@ -618,7 +619,7 @@
       <div class="qmini" data-no="${qq.no}">
         <div class="hd"><span class="qno">${qq.no}</span><span>${qq.score?qq.score+' 分':''}</span><button class="tg">答案</button></div>
         <div class="st">${qq.stem || '（题干为空）'}</div>
-        <div class="ops">${(qq.options||[]).map(o=>`<span>${esc(o.k)}. ${o.html||''}</span>`).join('')}</div>
+        <div class="ops">${(qq.options||[]).map(o=>`<span>${esc(o.k)}. ${optText(o)}</span>`).join('')}</div>
         <div class="rb"><b>答案：</b>${(qq.answerHtml || esc(qq.answer) || '—')}${qq.analysis ? '<br><b>解析：</b>'+esc(qq.analysis) : ''}</div>
       </div>`).join('') || '<div class="hint">该材料没有对应题目</div>';
 
@@ -672,6 +673,14 @@
   /* ---------- 渲染 ---------- */
   function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+  // 有些模拟题的选项正文在题干图片里，选项 HTML 只有字母本身
+  function optText(o){
+    const raw = String(o.html || '');
+    const plain = raw.replace(/<[^>]*>/g,'').replace(/\s|&nbsp;/g,'').trim();
+    if(!plain || plain === o.k) return '<span class="ph-note">见题干图</span>';
+    return raw;
+  }
+
   function qCard(q, idx){
     const mat = q.material ? `<div class="passage">
         <div class="ph"><b>材料</b>原文可按行阅读并圈画重点
@@ -680,7 +689,7 @@
         <div class="pbody">${q.material}</div>
       </div>` : '';
     const opts = q.options && q.options.length ? `<div class="opts">${q.options.map(o=>
-      `<div class="opt ${o.correct?'right':''}"><span class="k">${esc(o.k)}</span><span class="v">${o.html||'（原题未提供该选项内容）'}</span></div>`).join('')}</div>` : '';
+      `<div class="opt ${o.correct?'right':''}"><span class="k">${esc(o.k)}</span><span class="v">${optText(o)}</span></div>`).join('')}</div>` : '';
     const ansHtml = q.answerHtml ? `<div>${q.answerHtml}</div>` : '';
     const ansTxt = q.answer ? esc(q.answer) : '';
     const ana = q.analysis ? `<div class="ana"><b>解析：</b>${esc(q.analysis)}</div>` : '';
