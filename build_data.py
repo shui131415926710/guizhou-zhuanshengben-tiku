@@ -85,6 +85,7 @@ def parse_file(path: str):
                 "html": (o.get("html") or "").strip(),
                 "correct": bool(o.get("correct")),
             })
+        options.sort(key=lambda x: x["k"])
 
         stat = q.get("stat") or ""
         questions.append({
@@ -92,6 +93,7 @@ def parse_file(path: str):
             "score": score,
             "type": "choice" if options else "subjective",
             "stem": strip_ws_keep_tags(stem),
+            "material": strip_ws_keep_tags(q.get("material") or ""),
             "options": options,
             "answer": strip_ws(q.get("ansText") or ""),
             "answerHtml": (q.get("ansHtml") or "").strip(),

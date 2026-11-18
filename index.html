@@ -105,6 +105,11 @@
   .score{margin-left:auto;font-size:12px;color:var(--ink-3)}
   .score b{color:var(--ink-2)}
 
+  .passage{
+    background:#fbfcfd;border:1px solid var(--line);border-left:3px solid #cfe3e0;border-radius:8px;
+    padding:10px 14px;margin:4px 0 10px;font-size:13.8px;color:var(--ink-2);overflow-wrap:anywhere;
+  }
+  .passage p{margin:0}
   .stem{margin:2px 0 8px;overflow-wrap:anywhere}
   .stem img, .opt img, .ans img{max-width:100%;height:auto;vertical-align:middle}
   .stem p{margin:0}
@@ -303,13 +308,15 @@
     const ana = q.analysis ? `<div class="ana"><b>解析：</b>${escapeHtml(q.analysis)}</div>` : '';
     const stats = q.stats ? `<div class="share">${escapeHtml(q.stats)}</div>` : '';
 
+    const mat = q.material ? `<div class="passage">${q.material}</div>` : '';
     return `<article class="q ${showAll?'ans-open':''}">
       <div class="q-head">
         <span class="qno">${q.no}</span>
         <span class="tag ${q.type==='choice'?'choice':''}">${q.type==='choice'?'选择题':'主观题'}</span>
         <span class="score">${q.score? `<b>${q.score}</b> 分` : '分值未标注'}</span>
       </div>
-      <div class="stem">${q.stem || '（题干为空）'}</div>
+      ${mat}
+      <div class="stem">${q.stem || (q.material ? '（见上方材料）' : '（题干为空）')}</div>
       ${opts}
       <div class="ans">
         <div class="ans-row"><span class="lb">参考答案</span><span class="val">${(ansHtml||ansTxt) || '—（原题库未提供文字答案）'}</span></div>
