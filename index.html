@@ -119,6 +119,13 @@
   .stem .clear-both{display:none}
 
   .opts{display:flex;flex-direction:column;gap:7px;margin:10px 0 4px}
+  .myans{margin:12px 0 0;border:1px dashed #cfdbe7;border-radius:9px;background:#fdfefe;padding:9px 11px}
+  .myans-head{display:flex;align-items:center;gap:8px;font-size:12px;color:#4b5a68;margin-bottom:6px}
+  .myans-head .lb{font-weight:600;color:#0d7a71;background:#eaf7f4;border-radius:5px;padding:1px 7px}
+  .myans-head .saved{color:#8a97a4;margin-left:auto}
+  .ansbox{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;padding:9px 11px;
+    font-size:14px;line-height:1.8;font-family:inherit;outline:none;resize:vertical;min-height:56px;background:#fff}
+  .ansbox:focus{border-color:#9ed3cb;box-shadow:0 0 0 3px rgba(15,118,110,.08)}
   .opt{
     display:flex;gap:10px;align-items:flex-start;padding:9px 12px;border:1px solid var(--line);
     border-radius:9px;background:#fbfcfd;transition:.12s;font-size:14.5px;cursor:pointer;
@@ -311,6 +318,17 @@
   function getPick(no){
     try{ const v = localStorage.getItem('sb:pick:' + (currentId||'') + ':' + no); return v ? JSON.parse(v) : null; }catch(e){ return null; }
   }
+
+  // 主观题作答（填空/大题）
+  function getAns(no){
+    try{ return localStorage.getItem('sb:ans:' + (currentId||'') + ':' + no) || ''; }catch(e){ return ''; }
+  }
+  function setAns(no, v){
+    try{
+      if(v && v.trim()) localStorage.setItem('sb:ans:' + (currentId||'') + ':' + no, v);
+      else localStorage.removeItem('sb:ans:' + (currentId||'') + ':' + no);
+    }catch(e){}
+  }
   function setPick(no, k){
     try{ localStorage.setItem('sb:pick:' + (currentId||'') + ':' + no, JSON.stringify(k)); }catch(e){}
   }
@@ -341,6 +359,11 @@
     const stats = q.stats ? `<div class="share">${escapeHtml(q.stats)}</div>` : '';
 
     const mat = q.material ? `<div class="passage">${q.material}</div>` : '';
+    const isChoice = q.type === 'choice' && q.options.length;
+    const myAns = isChoice ? '' : `<div class="myans">
+        <div class="myans-head"><span class="lb">我的作答</span><span class="saved"></span></div>
+        <textarea class="ansbox" data-ano="${q.no}" placeholder="在这里写答案/解题过程，自动保存在本机">${escapeHtml(getAns(q.no))}</textarea>
+      </div>`;
     return `<article class="q ${showAll?'ans-open':''}" data-no="${q.no}">
       <div class="q-head">
         <span class="qno">${q.no}</span>
@@ -350,6 +373,7 @@
       ${mat}
       <div class="stem">${q.stem || (q.material ? '（见上方材料）' : '（题干为空）')}</div>
       ${opts}
+      ${myAns}
       <div class="ans">
         <div class="ans-row"><span class="lb">参考答案</span><span class="val">${(ansHtml||ansTxt) || '—（原题库未提供文字答案）'}</span></div>
         ${ana}${stats}
@@ -384,6 +408,20 @@
       }
       const btn = card.querySelector('.toggle');
       const aiBtn = card.querySelector('.ai');
+      const box = card.querySelector('.ansbox');
+      if(box){
+        const sv = card.querySelector('.saved');
+        let t = null;
+        box.oninput = ()=>{
+          if(sv) sv.textContent = '输入中…';
+          clearTimeout(t);
+          t = setTimeout(()=>{
+            setAns(+box.dataset.ano, box.value);
+            if(sv) sv.textContent = box.value.trim() ? '已保存到本机' : '已清空';
+          }, 500);
+        };
+        box.addEventListener('blur', ()=>{ setAns(+box.dataset.ano, box.value); if(sv) sv.textContent = box.value.trim() ? '已保存到本机' : ''; });
+      }
       if(aiBtn && q) aiBtn.onclick = ()=> window.AIQA && window.AIQA.open(q, { paperTitle: pk ? pk.title : '' });
       if(!btn) return;
       btn.onclick = ()=>{
@@ -444,6 +482,6 @@
   refresh();
 })();
 </script>
-<script src="ai.js?v=20261119e"></script>
+<script src="ai.js?v=20261119f"></script>
 </body>
 </html>

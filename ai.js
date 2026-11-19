@@ -94,8 +94,9 @@
   .aiq-fab::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid rgba(20,184,166,.5);\
     animation:aiqPulse 2.6s ease-out infinite;pointer-events:none}\
   @keyframes aiqPulse{0%{transform:scale(.85);opacity:.75}70%{transform:scale(1.45);opacity:0}100%{opacity:0}}\
-  .aiq{position:fixed;top:0;right:0;bottom:0;width:min(430px,94vw);z-index:999;background:#fff;border-left:1px solid #e3e7ec;\
-    display:none;flex-direction:column;box-shadow:-8px 0 24px rgba(16,32,43,.18);\
+  .aiq{position:fixed;right:16px;bottom:96px;width:min(360px,88vw);max-height:min(560px,70vh);z-index:999;\
+    background:#fff;border:1px solid #e3e7ec;border-radius:14px;overflow:hidden;\
+    display:none;flex-direction:column;box-shadow:0 14px 34px rgba(16,32,43,.2);\
     transform:translateZ(0);will-change:transform;isolation:isolate}\
   .aiq.on{display:flex}\
   .aiq-top{position:relative;z-index:2;display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid #e3e7ec;background:#fbfcfd}\

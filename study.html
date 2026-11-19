@@ -732,6 +732,14 @@
   }
 
   function getPick(no){ return LS.get('pick:' + (currentId||'') + ':' + no, null); }
+  // 主观题作答：与题库浏览页同键（原始字符串）
+  function getAns(no){ try{ return localStorage.getItem('sb:ans:' + (currentId||'') + ':' + no) || ''; }catch(e){ return ''; } }
+  function setAns(no, v){
+    try{
+      const k = 'sb:ans:' + (currentId||'') + ':' + no;
+      if(v && v.trim()) localStorage.setItem(k, v); else localStorage.removeItem(k);
+    }catch(e){}
+  }
   function setPick(no, k){ LS.set('pick:' + (currentId||'') + ':' + no, k); }
 
   function optClass(o, pick, q){
@@ -752,6 +760,11 @@
     const pick = getPick(q.no);
     const opts = q.options && q.options.length ? `<div class="opts">${q.options.map(o=>
       `<div class="${optClass(o, pick, q)}" data-k="${esc(o.k)}"><span class="k">${esc(o.k)}</span><span class="v">${optText(o)}</span></div>`).join('')}</div>` : '';
+    const isChoice = q.type === 'choice' && q.options.length;
+    const myAns = isChoice ? '' : `<div class="myans">
+        <div class="myans-head"><span class="lb">我的作答</span><span class="saved"></span></div>
+        <textarea class="ansbox" data-ano="${q.no}" placeholder="在这里写答案/解题过程，自动保存在本机">${esc(getAns(q.no))}</textarea>
+      </div>`;
     const ansHtml = q.answerHtml ? `<div>${q.answerHtml}</div>` : '';
     const ansTxt = q.answer ? esc(q.answer) : '';
     const ana = q.analysis ? `<div class="ana"><b>解析：</b>${esc(q.analysis)}</div>` : '';
@@ -767,6 +780,7 @@
       ${mat}
       <div class="stem">${q.stem || '（题干为空）'}</div>
       ${opts}
+      ${myAns}
       <div class="ans">
         <div class="ans-row"><span class="lb">参考答案</span><span class="val">${(ansHtml||ansTxt)||'—（原题库未提供文字答案）'}</span></div>
         ${ana}${stats}
@@ -945,6 +959,6 @@
   openPaper(pickDefault());
 })();
 </script>
-<script src="ai.js?v=20261119e"></script>
+<script src="ai.js?v=20261119f"></script>
 </body>
 </html>
