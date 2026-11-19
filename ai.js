@@ -50,6 +50,9 @@
     if(right.length) parts.push('【标准答案】' + right.join('、'));
     if(q.answer) parts.push('【参考答案文本】' + strip(q.answer));
     if(q.analysis) parts.push('【题库解析】' + strip(q.analysis));
+    var myans = '';
+    try{ myans = localStorage.getItem('sb:ans:' + (window.__currentPaperId || '') + ':' + q.no) || ''; }catch(e){}
+    if(myans) parts.push('【学生自己的作答】' + myans);
     var img = [];
     if(q.stem) img = img.concat(imgs(q.stem));
     (q.options || []).forEach(function(o){ img = img.concat(imgs(o.html || '')); });
@@ -360,7 +363,8 @@
       + '回答要求：先给结论，再给步骤；数学推导逐步写清楚，指出用到的定理或公式；'
       + '若题目给了标准答案，你的结论必须与标准答案一致，如认为答案可能有误要明确说明理由。'
       + '不要编造题目里没有的信息；看不清图片时说清缺什么。语气简洁，面向备考学生。';
-    var userText = '题目信息：\n' + ctx.text + '\n\n我的问题：' + question;
+    var userText = '题目信息：\n' + ctx.text + '\n\n我的问题：' + question
+      + (ctx.text.indexOf('【学生自己的作答】') >= 0 ? '\n（内含学生自己的作答，请先判断对错再讲）' : '');
     if(vision && ctx.images.length){
       var content = [{ type:'text', text:userText }];
       ctx.images.forEach(function(u){ content.push({ type:'image_url', image_url:{ url:u } }); });
