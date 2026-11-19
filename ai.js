@@ -85,6 +85,15 @@
 
   /* ---------- 面板 ---------- */
   var CSS = '\
+  .aiq-fab{position:fixed;right:22px;bottom:26px;z-index:998;width:56px;height:56px;border-radius:50%;border:0;\
+    background:linear-gradient(135deg,#0f766e,#14b8a6);color:#fff;font-size:21px;cursor:pointer;padding:0;\
+    box-shadow:0 8px 22px rgba(15,118,110,.35);display:flex;align-items:center;justify-content:center;\
+    transition:transform .15s ease,box-shadow .15s ease;line-height:1}\
+  .aiq-fab:hover{transform:scale(1.07);box-shadow:0 10px 26px rgba(15,118,110,.45)}\
+  .aiq-fab:active{transform:scale(.95)}\
+  .aiq-fab::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid rgba(20,184,166,.5);\
+    animation:aiqPulse 2.6s ease-out infinite;pointer-events:none}\
+  @keyframes aiqPulse{0%{transform:scale(.85);opacity:.75}70%{transform:scale(1.45);opacity:0}100%{opacity:0}}\
   .aiq{position:fixed;top:0;right:0;bottom:0;width:min(430px,94vw);z-index:999;background:#fff;border-left:1px solid #e3e7ec;\
     display:none;flex-direction:column;box-shadow:-8px 0 24px rgba(16,32,43,.18);\
     transform:translateZ(0);will-change:transform;isolation:isolate}\
@@ -127,10 +136,16 @@
     if(state.panel) return;
     var st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
 
-    var p = el('div', 'aiq');
-    p.innerHTML = '\
+    var fab = el('button', 'aiq-fab', '✦');
+    fab.title = 'AI 答疑 · 自动识别当前题目';
+    fab.onclick = function(){ openAuto(); };
+    document.body.appendChild(fab);
+
+    var p = el('div', 'aiq');    p.innerHTML = '\
       <div class="aiq-top">\
         <span class="t" id="aiqTitle">AI 答疑</span>\
+        <button class="aiq-btn" id="aiqPrev" title="上一题">‹</button>\
+        <button class="aiq-btn" id="aiqNext" title="下一题">›</button>\
         <button class="aiq-btn" id="aiqCfg">设置</button>\
         <button class="aiq-btn" id="aiqClose">关闭</button>\
       </div>\
@@ -174,6 +189,8 @@
     };
 
     p.querySelector('#aiqClose').onclick = function(){ p.classList.remove('on'); };
+    p.querySelector('#aiqPrev').onclick = function(){ shift(-1); };
+    p.querySelector('#aiqNext').onclick = function(){ shift(1); };
     p.querySelector('#aiqCfg').onclick = function(){
       var c = cfg();
       sel.value = c.preset || 'agnes';
@@ -210,8 +227,72 @@
     state.history = [];
     var p = state.panel;
     p.classList.add('on');
-    p.querySelector('#aiqTitle').textContent = (ctx && ctx.paperTitle ? ctx.paperTitle + ' · ' : '') + '第 ' + q.no + ' 题';
+    var pk = currentPk();
+    var idx = pk ? pk.questions.findIndex(function(x){ return x.no === q.no; }) : -1;
+    var title = (ctx && ctx.paperTitle) || (pk ? pk.title : '');
+    p.querySelector('#aiqTitle').textContent = (title ? title + ' · ' : '') + '第 ' + q.no + ' 题'
+      + (idx >= 0 ? ' / 共 ' + pk.questions.length + ' 题' : '');
     render();
+  }
+
+  /* ---------- 自动识别当前在做的题 ---------- */
+  function currentPk(){
+    var pid = window.__currentPaperId;
+    if(!pid) return null;
+    return (window.PAPERS || {})[pid] || null;
+  }
+
+  function pickNo(){
+    // 1) 草稿纸模式下，以浮窗里正在做的那道题为准
+    var bd = document.getElementById('board');
+    if(bd && bd.classList.contains('on')){
+      var qf = document.querySelector('.qfloat');
+      if(qf && qf.dataset.no){ return { no: +qf.dataset.no, src: '草稿纸' }; }
+    }
+    // 2) 否则取视口里最靠近中心的题卡
+    var cards = [].slice.call(document.querySelectorAll('.q[data-no]'));
+    if(!cards.length) return null;
+    var mid = window.innerHeight * 0.42, best = null, bestD = 1e9;
+    cards.forEach(function(c){
+      var r = c.getBoundingClientRect();
+      if(r.bottom < 70 || r.top > window.innerHeight - 50) return;
+      var d = Math.abs((r.top + r.bottom) / 2 - mid);
+      if(d < bestD){ bestD = d; best = c; }
+    });
+    if(!best){
+      // 没有完整可见的，取离视口上边最近的一张
+      cards.forEach(function(c){
+        var r = c.getBoundingClientRect();
+        var d = Math.abs(r.top - 120);
+        if(d < bestD){ bestD = d; best = c; }
+      });
+    }
+    return { no: +best.dataset.no, src: '页面' };
+  }
+
+  function openAuto(){
+    ensureUI();
+    var pk = currentPk();
+    if(!pk){ alert('还没加载题库，先选一套试卷再问。'); return; }
+    var sel = pickNo();
+    if(!sel){ alert('没找到题目。'); return; }
+    var q = pk.questions.filter(function(x){ return x.no === sel.no; })[0] || pk.questions[0];
+    open(q, { paperTitle: pk.title });
+    var tip = document.createElement('div');
+    tip.className = 'aiq-msg';
+    tip.style.cssText = 'font-size:12px;color:#0d7a71;background:#f2fbf9;border:1px solid #d8efe9;border-radius:8px;padding:7px 10px;margin-bottom:10px';
+    tip.textContent = '已按' + sel.src + '位置识别：第 ' + q.no + ' 题，可点右上角 ‹ › 换题';
+    var body = state.panel.querySelector('#aiqBody');
+    body.insertBefore(tip, body.firstChild.nextSibling);
+  }
+
+  function shift(n){
+    var pk = currentPk();
+    if(!pk || !state.q) return;
+    var i = pk.questions.findIndex(function(x){ return x.no === state.q.no; });
+    if(i < 0) i = 0;
+    i = (i + n + pk.questions.length) % pk.questions.length;
+    open(pk.questions[i], { paperTitle: pk.title });
   }
 
   function render(){

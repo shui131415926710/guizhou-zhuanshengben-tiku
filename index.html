@@ -257,6 +257,7 @@
 
   function showPaper(id){
     currentId = id;
+    window.__currentPaperId = id;
     renderList();
     if (!id) { elHead.innerHTML = ''; elQ.innerHTML = ''; return; }
     loadPaper(id, ()=>renderPaper(id));
@@ -442,6 +443,6 @@
   refresh();
 })();
 </script>
-<script src="ai.js?v=20261119c"></script>
+<script src="ai.js?v=20261119d"></script>
 </body>
 </html>

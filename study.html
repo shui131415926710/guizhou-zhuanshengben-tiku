@@ -529,6 +529,7 @@
   function renderFloat(){
     if(!paper) return;
     const q = paper.questions[curQ];
+    qFloat.dataset.no = q.no;
     qfTitle.textContent = '第 ' + q.no + ' 题 / 共 ' + paper.questions.length;
     let html = '';
     if(q.material){ html += '<div class="passage" style="margin-bottom:8px">' + q.material + '</div>'; }
@@ -845,6 +846,7 @@
     if(!id){ Q.innerHTML=''; return; }
     loadPaper(id, ()=>{
       paper = PAPERS[id];
+      window.__currentPaperId = id;
       renderPaper();
       autoOpen();
     });
@@ -943,6 +945,6 @@
   openPaper(pickDefault());
 })();
 </script>
-<script src="ai.js?v=20261119c"></script>
+<script src="ai.js?v=20261119d"></script>
 </body>
 </html>
