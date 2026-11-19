@@ -354,6 +354,7 @@
       </div>
       <div class="toolbar" style="margin:12px 0 0">
         <button class="btn toggle">${showAll?'隐藏答案':'查看答案'}</button>
+        <button class="btn ai">AI 答疑</button>
       </div>
     </article>`;
   }
@@ -380,6 +381,8 @@
         });
       }
       const btn = card.querySelector('.toggle');
+      const aiBtn = card.querySelector('.ai');
+      if(aiBtn && q) aiBtn.onclick = ()=> window.AIQA && window.AIQA.open(q, { paperTitle: pk ? pk.title : '' });
       if(!btn) return;
       btn.onclick = ()=>{
         const open = card.classList.toggle('ans-open');
@@ -439,5 +442,6 @@
   refresh();
 })();
 </script>
+<script src="ai.js"></script>
 </body>
 </html>

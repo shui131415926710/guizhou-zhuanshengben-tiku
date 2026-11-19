@@ -1,0 +1,365 @@
+/* AI 答疑组件（本地静态页，自带设置面板；未配置 API Key 时只做题库内答疑）
+   用法：AIQA.open(questionObj, { paperTitle })
+*/
+(function(){
+  'use strict';
+  var LSKEY = 'sb:ai';
+  var PRESETS = {
+    deepseek: { label:'DeepSeek（文本）', base:'https://api.deepseek.com/v1', model:'deepseek-chat', vision:false,
+                tip:'platform.deepseek.com 注册后创建 API Key，有免费额度。' },
+    qwen:     { label:'通义千问 VL（能看图）', base:'https://dashscope.aliyuncs.com/compatible-mode/v1', model:'qwen-vl-max', vision:true,
+                tip:'阿里云百炼控制台开通后创建 API Key，可让模型直接看题干公式图。' },
+    openai:   { label:'OpenAI', base:'https://api.openai.com/v1', model:'gpt-4o-mini', vision:true,
+                tip:'platform.openai.com 创建 Key，需自备额度。' },
+    custom:   { label:'自建 / 中转', base:'', model:'', vision:true, tip:'填任何 OpenAI 兼容的 /v1 地址。' }
+  };
+
+  var state = { q:null, ctx:null, history:[], busy:false, panel:null };
+
+  function cfg(){
+    try{ return JSON.parse(localStorage.getItem(LSKEY) || '{}'); }catch(e){ return {}; }
+  }
+  function saveCfg(o){
+    try{ localStorage.setItem(LSKEY, JSON.stringify(o)); }catch(e){}
+  }
+
+  /* ---------- 题目上下文 ---------- */
+  function strip(html){
+    return String(html||'').replace(/<img[^>]*>/g,' [图] ')
+      .replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/\s+/g,' ').trim();
+  }
+  function imgs(html){
+    var out = [], re = /<img[^>]+src=["']([^"']+)["']/g, m;
+    while((m = re.exec(String(html||'')))) { if(out.indexOf(m[1]) < 0) out.push(m[1]); }
+    return out;
+  }
+
+  function buildQA(q){
+    var parts = [];
+    parts.push('第 ' + q.no + ' 题（' + (q.type === 'choice' ? '选择题' : '主观题') + '，' + (q.score ? q.score + ' 分' : '分值未标注') + '）');
+    if(q.material) parts.push('【材料】' + strip(q.material));
+    parts.push('【题干】' + (strip(q.stem) || '（题干正文为图片，见附图）'));
+    if(q.options && q.options.length){
+      parts.push('【选项】' + q.options.map(function(o){
+        return o.k + '. ' + (strip(o.html) || '（图）');
+      }).join('  '));
+    }
+    var right = (q.options || []).filter(function(o){ return o.correct; }).map(function(o){ return o.k; });
+    if(right.length) parts.push('【标准答案】' + right.join('、'));
+    if(q.answer) parts.push('【参考答案文本】' + strip(q.answer));
+    if(q.analysis) parts.push('【题库解析】' + strip(q.analysis));
+    var img = [];
+    if(q.stem) img = img.concat(imgs(q.stem));
+    (q.options || []).forEach(function(o){ img = img.concat(imgs(o.html || '')); });
+    return { text: parts.join('\n'), images: img.slice(0, 4) };
+  }
+
+  /* ---------- 本地答疑（无 Key） ---------- */
+  var TOPICS = [
+    { k:['极限','lim','∞','连续'], t:'极限与连续：等价无穷小、洛必达、夹逼、分段点连续性' },
+    { k:['导数','可导','f\'','切线','单调','极值'], t:'导数与微分：求导法则、隐函数、单调性与极值' },
+    { k:['积分','dx','不定积分','定积分','∫'], t:'积分：换元/分部、变限积分、定积分几何应用' },
+    { k:['矩阵','行列式','方程组','秩'], t:'线性代数：矩阵运算、行列式、解的判定' },
+    { k:['概率','随机','分布','期望'], t:'概率统计：古典概型、分布律、期望方差' },
+    { k:['微分方程','y\'','通解'], t:'微分方程：一阶线性、可分离变量' },
+    { k:['级数','收敛','发散'], t:'级数：正项级数判敛、幂级数收敛半径' },
+    { k:['向量','平面','直线'], t:'空间解析几何：法向量、夹角、距离' }
+  ];
+
+  function localAnswer(){
+    var q = state.q;
+    var txt = strip(q.stem) + ' ' + (q.options || []).map(function(o){ return strip(o.html); }).join(' ');
+    var hits = TOPICS.filter(function(t){ return t.k.some(function(k){ return txt.indexOf(k) >= 0; }); });
+    var blocks = [];
+    blocks.push('当前未配置模型 API Key，只能按题库内容答疑（不做推导，避免算错）。');
+    if(hits.length) blocks.push('**可能考的知识点**：' + hits.map(function(h){ return h.t; }).join('；'));
+    var right = (q.options || []).filter(function(o){ return o.correct; }).map(function(o){ return o.k; });
+    if(right.length) blocks.push('**标准答案**：' + right.join('、'));
+    if(q.analysis) blocks.push('**题库解析**：' + strip(q.analysis));
+    else if(!q.answerHtml) blocks.push('这道题题库没有给文字解析，答案可能是图片；点「查看答案」对照。');
+    blocks.push('——\n想让我讲解思路、对比选项、检查你的解法，请点右上角「设置」填入 API Key（支持 DeepSeek / 通义 / OpenAI 兼容）。');
+    return blocks.join('\n\n');
+  }
+
+  /* ---------- 面板 ---------- */
+  var CSS = '\
+  .aiq-fab{position:fixed;right:18px;bottom:18px;z-index:85;display:flex;align-items:center;gap:6px;\
+    background:#0f766e;color:#fff;border:0;border-radius:22px;padding:9px 16px;font-size:13.5px;cursor:pointer;\
+    box-shadow:0 6px 16px rgba(15,118,110,.28)}\
+  .aiq-fab:hover{background:#0d6a63}\
+  .aiq{position:fixed;top:0;right:0;bottom:0;width:min(430px,94vw);z-index:90;background:#fff;border-left:1px solid #e3e7ec;\
+    display:none;flex-direction:column;box-shadow:-8px 0 24px rgba(16,32,43,.08)}\
+  .aiq.on{display:flex}\
+  .aiq-top{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid #e3e7ec;background:#fbfcfd}\
+  .aiq-top .t{font-size:13px;font-weight:650;color:#16202b;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}\
+  .aiq-btn{border:1px solid #e3e7ec;background:#fff;color:#4b5a68;border-radius:7px;padding:4px 9px;font-size:12px;cursor:pointer}\
+  .aiq-btn:hover{background:#f4f6f8}\
+  .aiq-body{flex:1;overflow:auto;padding:12px}\
+  .aiq-q{background:#f7f9fa;border:1px solid #e3e7ec;border-radius:9px;padding:9px 11px;font-size:12.5px;color:#4b5a68;margin-bottom:10px;line-height:1.7;max-height:170px;overflow:auto}\
+  .aiq-msg{margin-bottom:12px;font-size:13.5px;line-height:1.85;white-space:pre-wrap;word-break:break-word}\
+  .aiq-msg.me{background:#eef4ff;border-radius:9px;padding:8px 11px;color:#1f3b6e}\
+  .aiq-msg.ai{color:#16202b}\
+  .aiq-msg.ai b{color:#0d7a71}\
+  .aiq-chip{display:inline-block;border:1px solid #d8e6e3;background:#f4fbf9;color:#0d7a71;border-radius:16px;\
+    padding:4px 11px;font-size:12px;margin:0 6px 6px 0;cursor:pointer}\
+  .aiq-chip:hover{background:#e8f5f3}\
+  .aiq-foot{border-top:1px solid #e3e7ec;padding:9px 12px;display:flex;gap:8px;align-items:flex-end;background:#fbfcfd}\
+  .aiq-in{flex:1;border:1px solid #e3e7ec;border-radius:9px;padding:8px 10px;font-size:13.5px;resize:none;max-height:110px;min-height:40px;outline:none;font-family:inherit}\
+  .aiq-in:focus{border-color:#9ed3cb;box-shadow:0 0 0 3px rgba(15,118,110,.08)}\
+  .aiq-send{background:#0f766e;color:#fff;border:0;border-radius:9px;padding:9px 15px;font-size:13px;cursor:pointer}\
+  .aiq-send:disabled{opacity:.5;cursor:not-allowed}\
+  .aiq-set{position:absolute;inset:0;background:#fff;z-index:5;padding:18px;overflow:auto}\
+  .aiq-set h3{margin:0 0 12px;font-size:15px}\
+  .aiq-set label{display:block;font-size:12.5px;color:#4b5a68;margin:12px 0 5px}\
+  .aiq-set input,.aiq-set select{width:100%;border:1px solid #e3e7ec;border-radius:8px;padding:8px 10px;font-size:13px;outline:none;font-family:inherit}\
+  .aiq-set .hint{font-size:11.5px;color:#8a97a4;margin-top:6px;line-height:1.7}\
+  .aiq-set .row{display:flex;gap:8px;margin-top:16px}\
+  .aiq-err{color:#c0392b;font-size:12.5px}\
+  ';
+
+  function el(tag, cls, html){
+    var e = document.createElement(tag);
+    if(cls) e.className = cls;
+    if(html != null) e.innerHTML = html;
+    return e;
+  }
+
+  function ensureUI(){
+    if(state.panel) return;
+    var st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
+
+    var fab = el('button', 'aiq-fab', '✦ AI 答疑');
+    fab.onclick = function(){ open(lastQ, lastCtx); };
+    document.body.appendChild(fab);
+
+    var p = el('div', 'aiq');
+    p.innerHTML = '\
+      <div class="aiq-top">\
+        <span class="t" id="aiqTitle">AI 答疑</span>\
+        <button class="aiq-btn" id="aiqCfg">设置</button>\
+        <button class="aiq-btn" id="aiqClose">关闭</button>\
+      </div>\
+      <div class="aiq-body" id="aiqBody"></div>\
+      <div class="aiq-foot">\
+        <textarea class="aiq-in" id="aiqIn" placeholder="问：这题为什么选这个？帮我讲讲思路…"></textarea>\
+        <button class="aiq-send" id="aiqSend">发送</button>\
+      </div>';
+    document.body.appendChild(p);
+    state.panel = p;
+
+    var setWin = el('div', 'aiq-set');
+    setWin.style.display = 'none';
+    setWin.innerHTML = '\
+      <h3>模型接口设置</h3>\
+      <label>服务商</label>\
+      <select id="aiqPreset"></select>\
+      <label>Base URL</label>\
+      <input id="aiqBase" placeholder="https://api.deepseek.com/v1">\
+      <label>模型名称</label>\
+      <input id="aiqModel" placeholder="deepseek-chat">\
+      <label>API Key</label>\
+      <input id="aiqKey" type="password" placeholder="sk-...">\
+      <div class="hint" id="aiqTip"></div>\
+      <div class="hint">Key 只保存在本机浏览器（localStorage），直连服务商，不经过本站服务器。公共电脑用完请清空。</div>\
+      <div class="row">\
+        <button class="aiq-btn" id="aiqSetCancel">取消</button>\
+        <button class="aiq-btn" id="aiqSetSave" style="background:#0f766e;color:#fff;border-color:#0f766e">保存</button>\
+      </div>';
+    p.appendChild(setWin);
+
+    var sel = setWin.querySelector('#aiqPreset');
+    Object.keys(PRESETS).forEach(function(k){
+      var o = el('option'); o.value = k; o.textContent = PRESETS[k].label; sel.appendChild(o);
+    });
+    sel.onchange = function(){
+      var pr = PRESETS[sel.value];
+      setWin.querySelector('#aiqBase').value = pr.base;
+      setWin.querySelector('#aiqModel').value = pr.model;
+      setWin.querySelector('#aiqTip').textContent = pr.tip || '';
+    };
+
+    p.querySelector('#aiqClose').onclick = function(){ p.classList.remove('on'); };
+    p.querySelector('#aiqCfg').onclick = function(){
+      var c = cfg();
+      sel.value = c.preset || 'deepseek';
+      setWin.querySelector('#aiqBase').value = c.base || PRESETS[sel.value].base;
+      setWin.querySelector('#aiqModel').value = c.model || PRESETS[sel.value].model;
+      setWin.querySelector('#aiqKey').value = c.key || '';
+      setWin.querySelector('#aiqTip').textContent = PRESETS[sel.value].tip || '';
+      setWin.style.display = 'block';
+    };
+    setWin.querySelector('#aiqSetCancel').onclick = function(){ setWin.style.display = 'none'; };
+    setWin.querySelector('#aiqSetSave').onclick = function(){
+      saveCfg({
+        preset: sel.value,
+        base: setWin.querySelector('#aiqBase').value.trim(),
+        model: setWin.querySelector('#aiqModel').value.trim(),
+        key: setWin.querySelector('#aiqKey').value.trim(),
+        vision: PRESETS[sel.value].vision
+      });
+      setWin.style.display = 'none';
+      render();
+    };
+
+    p.querySelector('#aiqSend').onclick = function(){ send(); };
+    var ta = p.querySelector('#aiqIn');
+    ta.addEventListener('keydown', function(e){
+      if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); send(); }
+    });
+  }
+
+  var lastQ = null, lastCtx = null;
+
+  function open(q, ctx){
+    ensureUI();
+    if(!q) return;
+    lastQ = q; lastCtx = ctx || {};
+    state.q = q; state.ctx = ctx || {};
+    state.history = [];
+    var p = state.panel;
+    p.classList.add('on');
+    p.querySelector('#aiqTitle').textContent = (ctx && ctx.paperTitle ? ctx.paperTitle + ' · ' : '') + '第 ' + q.no + ' 题';
+    render();
+  }
+
+  function render(){
+    var body = state.panel.querySelector('#aiqBody');
+    var c = cfg();
+    var q = state.q;
+    var head = el('div', 'aiq-q');
+    var txt = strip(q.stem || '');
+    if(q.material){ txt = '【材料】' + strip(q.material).slice(0, 80) + '…  ' + txt; }
+    head.textContent = txt || '（题干为图片）';
+    var wrap = [head];
+
+    if(!c.key){
+      wrap.push(el('div', 'aiq-msg ai', localAnswer().replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')));
+    }
+    state.history.forEach(function(m){
+      var d = el('div', 'aiq-msg ' + (m.role === 'user' ? 'me' : 'ai'));
+      d.innerHTML = m.role === 'user' ? escHtml(m.content) : fmt(m.content);
+      wrap.push(d);
+    });
+    var chips = el('div');
+    ['这题考什么？', '为什么选这个答案？', '其他选项错在哪？', '帮我检查我的思路'].forEach(function(t){
+      var ch = el('span', 'aiq-chip', t);
+      ch.onclick = function(){ state.panel.querySelector('#aiqIn').value = t; send(); };
+      chips.appendChild(ch);
+    });
+    wrap.push(chips);
+
+    body.innerHTML = '';
+    wrap.forEach(function(w){ body.appendChild(w); });
+    body.scrollTop = body.scrollHeight;
+  }
+
+  function escHtml(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function fmt(s){
+    return escHtml(s)
+      .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+      .replace(/`([^`]+)`/g, '<code style="background:#f3f5f7;padding:1px 4px;border-radius:4px">$1</code>');
+  }
+
+  function send(){
+    if(state.busy) return;
+    var ta = state.panel.querySelector('#aiqIn');
+    var text = ta.value.trim();
+    if(!text) return;
+    ta.value = '';
+    state.history.push({ role:'user', content:text });
+    render();
+
+    var c = cfg();
+    if(!c.key){
+      state.history.push({ role:'assistant', content: localAnswer() });
+      render();
+      return;
+    }
+    ask(text, c);
+  }
+
+  function buildMessages(q, question, vision){
+    var ctx = buildQA(q);
+    var sys = '你是贵州专升本（高等数学 / 英语）辅导老师。学生正在做这套题。'
+      + '回答要求：先给结论，再给步骤；数学推导逐步写清楚，指出用到的定理或公式；'
+      + '若题目给了标准答案，你的结论必须与标准答案一致，如认为答案可能有误要明确说明理由。'
+      + '不要编造题目里没有的信息；看不清图片时说清缺什么。语气简洁，面向备考学生。';
+    var userText = '题目信息：\n' + ctx.text + '\n\n我的问题：' + question;
+    if(vision && ctx.images.length){
+      var content = [{ type:'text', text:userText }];
+      ctx.images.forEach(function(u){ content.push({ type:'image_url', image_url:{ url:u } }); });
+      return [{ role:'system', content:sys }, { role:'user', content:content }];
+    }
+    return [{ role:'system', content:sys }, { role:'user', content:userText + '\n（题干公式为图片，若信息不足请说明）' }];
+  }
+
+  function ask(text, c){
+    state.busy = true;
+    state.panel.querySelector('#aiqSend').disabled = true;
+
+    var body = state.panel.querySelector('#aiqBody');
+    var live = el('div', 'aiq-msg ai');
+    body.appendChild(live);
+    body.scrollTop = body.scrollHeight;
+
+    var url = (c.base || '').replace(/\/+$/, '') + '/chat/completions';
+    var payload = {
+      model: c.model,
+      stream: true,
+      temperature: 0.3,
+      messages: buildMessages(state.q, text, !!c.vision)
+    };
+
+    fetch(url, {
+      method:'POST',
+      headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + c.key },
+      body: JSON.stringify(payload)
+    }).then(function(res){
+      if(!res.ok){
+        return res.text().then(function(t){
+          throw new Error('HTTP ' + res.status + ' ' + t.slice(0, 180));
+        });
+      }
+      var reader = res.body.getReader();
+      var dec = new TextDecoder();
+      var buf = '', acc = '';
+      function pump(){
+        return reader.read().then(function(r){
+          if(r.done){ finish(acc); return; }
+          buf += dec.decode(r.value, {stream:true});
+          var lines = buf.split('\n');
+          buf = lines.pop();
+          lines.forEach(function(line){
+            line = line.trim();
+            if(!line.indexOf('data:')) line = line.slice(5).trim();
+            else return;
+            if(!line || line === '[DONE]') return;
+            try{
+              var j = JSON.parse(line);
+              var d = j.choices && j.choices[0] && j.choices[0].delta && j.choices[0].delta.content;
+              if(d){ acc += d; live.innerHTML = fmt(acc); body.scrollTop = body.scrollHeight; }
+            }catch(e){}
+          });
+          return pump();
+        });
+      }
+      return pump();
+    }).catch(function(err){
+      live.className = 'aiq-msg';
+      live.innerHTML = '<span class="aiq-err">请求失败：' + escHtml(err.message) +
+        '<br>检查 Base URL / Key / 模型名是否正确，或该服务是否支持浏览器直连（部分服务需要 CORS 白名单）。</span>';
+      finish(null);
+    });
+
+    function finish(acc){
+      state.busy = false;
+      state.panel.querySelector('#aiqSend').disabled = false;
+      if(acc){ state.history.push({ role:'assistant', content:acc }); live.innerHTML = fmt(acc); }
+      else if(!live.innerHTML){ live.remove(); }
+    }
+  }
+
+  window.AIQA = { open: open, cfg: cfg };
+})();

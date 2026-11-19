@@ -217,6 +217,7 @@
     <div class="qf-head" id="qfHead">
       <span class="t" id="qfTitle">题目</span>
       <span class="grow"></span>
+      <button class="btn sm" id="qfAi">AI</button>
       <button class="btn sm" id="qfClose">收起</button>
     </div>
     <div class="qf-body" id="qfBody"></div>
@@ -568,6 +569,9 @@
   function saveBoardState(){ if(board) LS.set('board:'+(currentId||'')+':'+paper.questions[curQ].no, {strokes: board.st.strokes, view: board.st.view}); }
   function reopen(){ board=null; boardKey=null; openBoard(curQ); }
   document.getElementById('qfClose').onclick = ()=>{ qFloat.style.display='none'; };
+  document.getElementById('qfAi').onclick = ()=>{
+    if(paper && window.AIQA) window.AIQA.open(paper.questions[curQ], {paperTitle: paper.title});
+  };
   document.getElementById('qfOpacity').oninput = e=>{ qFloat.style.opacity = e.target.value/100; };
 
   // 浮窗拖动
@@ -757,6 +761,7 @@
         <span class="tag ${q.type==='choice'?'choice':''}">${q.type==='choice'?'选择题':'主观题'}</span>
         <span class="score">${q.score? `<b>${q.score}</b> 分` : '分值未标注'}</span>
         <button class="btn sm draft" data-idx="${idx}">草稿纸</button>
+        <button class="btn sm ai" data-idx="${idx}">AI 答疑</button>
       </div>
       ${mat}
       <div class="stem">${q.stem || '（题干为空）'}</div>
@@ -800,6 +805,8 @@
       }
       const mb = card.querySelector('.mbtn');
       if(mb) mb.onclick = ()=>openReader(i);
+      const ab = card.querySelector('.ai');
+      if(ab) ab.onclick = ()=> window.AIQA && window.AIQA.open(paper.questions[i], {paperTitle: paper.title});
     });
   }
 
@@ -936,5 +943,6 @@
   openPaper(pickDefault());
 })();
 </script>
+<script src="ai.js"></script>
 </body>
 </html>
