@@ -83,10 +83,6 @@
 
   /* ---------- 面板 ---------- */
   var CSS = '\
-  .aiq-fab{position:fixed;right:18px;bottom:18px;z-index:85;display:flex;align-items:center;gap:6px;\
-    background:#0f766e;color:#fff;border:0;border-radius:22px;padding:9px 16px;font-size:13.5px;cursor:pointer;\
-    box-shadow:0 6px 16px rgba(15,118,110,.28)}\
-  .aiq-fab:hover{background:#0d6a63}\
   .aiq{position:fixed;top:0;right:0;bottom:0;width:min(430px,94vw);z-index:90;background:#fff;border-left:1px solid #e3e7ec;\
     display:none;flex-direction:column;box-shadow:-8px 0 24px rgba(16,32,43,.08)}\
   .aiq.on{display:flex}\
@@ -127,10 +123,6 @@
   function ensureUI(){
     if(state.panel) return;
     var st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
-
-    var fab = el('button', 'aiq-fab', '✦ AI 答疑');
-    fab.onclick = function(){ open(lastQ, lastCtx); };
-    document.body.appendChild(fab);
 
     var p = el('div', 'aiq');
     p.innerHTML = '\
@@ -208,12 +200,9 @@
     });
   }
 
-  var lastQ = null, lastCtx = null;
-
   function open(q, ctx){
     ensureUI();
     if(!q) return;
-    lastQ = q; lastCtx = ctx || {};
     state.q = q; state.ctx = ctx || {};
     state.history = [];
     var p = state.panel;
