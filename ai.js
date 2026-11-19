@@ -85,14 +85,15 @@
 
   /* ---------- 面板 ---------- */
   var CSS = '\
-  .aiq{position:fixed;top:0;right:0;bottom:0;width:min(430px,94vw);z-index:90;background:#fff;border-left:1px solid #e3e7ec;\
-    display:none;flex-direction:column;box-shadow:-8px 0 24px rgba(16,32,43,.08)}\
+  .aiq{position:fixed;top:0;right:0;bottom:0;width:min(430px,94vw);z-index:999;background:#fff;border-left:1px solid #e3e7ec;\
+    display:none;flex-direction:column;box-shadow:-8px 0 24px rgba(16,32,43,.18);\
+    transform:translateZ(0);will-change:transform;isolation:isolate}\
   .aiq.on{display:flex}\
-  .aiq-top{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid #e3e7ec;background:#fbfcfd}\
+  .aiq-top{position:relative;z-index:2;display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid #e3e7ec;background:#fbfcfd}\
   .aiq-top .t{font-size:13px;font-weight:650;color:#16202b;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}\
   .aiq-btn{border:1px solid #e3e7ec;background:#fff;color:#4b5a68;border-radius:7px;padding:4px 9px;font-size:12px;cursor:pointer}\
   .aiq-btn:hover{background:#f4f6f8}\
-  .aiq-body{flex:1;overflow:auto;padding:12px}\
+  .aiq-body{flex:1;overflow:auto;padding:12px;background:#fff}\
   .aiq-q{background:#f7f9fa;border:1px solid #e3e7ec;border-radius:9px;padding:9px 11px;font-size:12.5px;color:#4b5a68;margin-bottom:10px;line-height:1.7;max-height:170px;overflow:auto}\
   .aiq-msg{margin-bottom:12px;font-size:13.5px;line-height:1.85;white-space:pre-wrap;word-break:break-word}\
   .aiq-msg.me{background:#eef4ff;border-radius:9px;padding:8px 11px;color:#1f3b6e}\
@@ -291,7 +292,7 @@
     state.panel.querySelector('#aiqSend').disabled = true;
 
     var body = state.panel.querySelector('#aiqBody');
-    var live = el('div', 'aiq-msg ai');
+    var live = el('div', 'aiq-msg ai', '<span style="color:#8a97a4">正在读题并思考…（带公式图的题约 20–40 秒）</span>');
     body.appendChild(live);
     body.scrollTop = body.scrollHeight;
 
