@@ -273,7 +273,7 @@
   function openAuto(){
     ensureUI();
     var pk = currentPk();
-    if(!pk){ alert('还没加载题库，先选一套试卷再问。'); return; }
+    if(!pk){ alert('还没选中试卷，先在左侧列表点一套真题或模拟卷。'); return; }
     var sel = pickNo();
     if(!sel){ alert('没找到题目。'); return; }
     var q = pk.questions.filter(function(x){ return x.no === sel.no; })[0] || pk.questions[0];
@@ -435,4 +435,8 @@
   }
 
   window.AIQA = { open: open, cfg: cfg };
+
+  // 页面一加载就把悬浮球挂出来（面板默认收起）
+  if(document.body){ ensureUI(); }
+  else { document.addEventListener('DOMContentLoaded', ensureUI); }
 })();

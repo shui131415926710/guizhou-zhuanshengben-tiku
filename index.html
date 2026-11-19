@@ -290,6 +290,7 @@
     if (pid && pid !== currentId) return;   // 已切到别的卷，丢弃过期渲染
     const p = getPaper(pid || currentId);
     if(!p){ return; }
+    window.__currentPaperId = currentId;
 
     elHead.innerHTML = `
       <div class="paper-head">
@@ -443,6 +444,6 @@
   refresh();
 })();
 </script>
-<script src="ai.js?v=20261119d"></script>
+<script src="ai.js?v=20261119e"></script>
 </body>
 </html>
