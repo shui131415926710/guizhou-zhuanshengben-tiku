@@ -121,8 +121,11 @@
   .opts{display:flex;flex-direction:column;gap:7px;margin:10px 0 4px}
   .opt{
     display:flex;gap:10px;align-items:flex-start;padding:9px 12px;border:1px solid var(--line);
-    border-radius:9px;background:#fbfcfd;transition:.12s;font-size:14.5px;
+    border-radius:9px;background:#fbfcfd;transition:.12s;font-size:14.5px;cursor:pointer;
   }
+  .opt:hover{border-color:#c9d6e3;background:#f7fafc}
+  .opt.sel{border-color:#7aa7ff;background:#f1f7ff}
+  .opt.sel .k{background:#3b62a8;border-color:#3b62a8;color:#fff}
   .opt .k{
     flex:0 0 22px;height:22px;border-radius:50%;background:#fff;border:1px solid var(--line);
     display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:650;color:var(--ink-2)
@@ -132,6 +135,9 @@
   .opt .v p{margin:0}
   .ans-open .opt.right{border-color:#9ed3cb;background:#f0faf8}
   .ans-open .opt.right .k{background:var(--accent);border-color:var(--accent);color:#fff}
+  .ans-open .opt.wrong{border-color:#e0a2a2;background:#fdf2f2}
+  .ans-open .opt.wrong .k{background:#c0392b;border-color:#c0392b;color:#fff}
+  .mine{font-size:11px;color:#8a97a4;margin:2px 0 0}
 
   .ans{
     margin-top:12px;border-top:1px dashed var(--line);padding-top:12px;
@@ -300,12 +306,24 @@
     bindQ();
   }
 
+  function getPick(no){
+    try{ const v = localStorage.getItem('sb:pick:' + (currentId||'') + ':' + no); return v ? JSON.parse(v) : null; }catch(e){ return null; }
+  }
+  function setPick(no, k){
+    try{ localStorage.setItem('sb:pick:' + (currentId||'') + ':' + no, JSON.stringify(k)); }catch(e){}
+  }
+
   function renderQ(q){
     if(keyword && !matches(q, keyword)) return '';
 
-    const opts = q.options.length ? `<div class="opts">${q.options.map(o=>
-      `<div class="opt ${o.correct?'right':''}"><span class="k">${escapeHtml(o.k)}</span><span class="v">${o.html || '（原题未提供该选项内容）'}</span></div>`
-    ).join('')}</div>` : '';
+    const pick = getPick(q.no);
+    const opts = q.options.length ? `<div class="opts">${q.options.map(o=>{
+      let c = 'opt';
+      if(o.correct) c += ' right';
+      if(pick === o.k) c += ' sel';
+      if(pick === o.k && !o.correct) c += ' wrong';
+      return `<div class="${c}" data-k="${escapeHtml(o.k)}"><span class="k">${escapeHtml(o.k)}</span><span class="v">${o.html || '（见题干图）'}</span></div>`;
+    }).join('')}</div>` : '';
 
     const ansHtml = q.answerHtml ? `<div>${q.answerHtml}</div>` : '';
     const ansTxt = q.answer ? escapeHtml(q.answer) : '';
@@ -313,7 +331,7 @@
     const stats = q.stats ? `<div class="share">${escapeHtml(q.stats)}</div>` : '';
 
     const mat = q.material ? `<div class="passage">${q.material}</div>` : '';
-    return `<article class="q ${showAll?'ans-open':''}">
+    return `<article class="q ${showAll?'ans-open':''}" data-no="${q.no}">
       <div class="q-head">
         <span class="qno">${q.no}</span>
         <span class="tag ${q.type==='choice'?'choice':''}">${q.type==='choice'?'选择题':'主观题'}</span>
@@ -334,6 +352,25 @@
 
   function bindQ(){
     elQ.querySelectorAll('.q').forEach(card=>{
+      const qno = +card.dataset.no;
+      const pk = (window.PAPERS || {})[currentId];
+      const q = pk ? pk.questions.find(x=>x.no === qno) : null;
+      if(q && q.type === 'choice' && q.options.length){
+        card.querySelectorAll('.opt').forEach(el=>{
+          el.onclick = ()=>{
+            setPick(q.no, el.dataset.k);
+            card.querySelectorAll('.opt').forEach(x=>{
+              const o = q.options.find(y=>y.k === x.dataset.k);
+              if(!o) return;
+              let c = 'opt';
+              if(o.correct) c += ' right';
+              if(getPick(q.no) === o.k) c += ' sel';
+              if(getPick(q.no) === o.k && !o.correct) c += ' wrong';
+              x.className = c;
+            });
+          };
+        });
+      }
       const btn = card.querySelector('.toggle');
       if(!btn) return;
       btn.onclick = ()=>{

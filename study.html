@@ -732,7 +732,7 @@
     let c = 'opt';
     if(o.correct) c += ' right';
     if(pick === o.k) c += ' sel';
-    if(pick && pick !== o.k && !o.correct) c += ' wrong';
+    if(pick === o.k && !o.correct) c += ' wrong';
     return c;
   }
 
