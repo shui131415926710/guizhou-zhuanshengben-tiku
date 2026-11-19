@@ -717,10 +717,11 @@
   /* ---------- 渲染 ---------- */
   function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-  // 有些模拟题的选项正文在题干图片里，选项 HTML 只有字母本身
+  // 选项正文：有图片/公式时原样输出；只有字母（正文印在题干图里）时给提示
   function optText(o){
     const raw = String(o.html || '');
-    const plain = raw.replace(/<[^>]*>/g,'').replace(/\s|&nbsp;/g,'').trim();
+    if(/<img|<svg|<math|katex/i.test(raw)) return raw;
+    const plain = raw.replace(/<[^>]*>/g,'').replace(/&nbsp;/g,'').replace(/\s/g,'').trim();
     if(!plain || plain === o.k) return '<span class="ph-note">见题干图</span>';
     return raw;
   }

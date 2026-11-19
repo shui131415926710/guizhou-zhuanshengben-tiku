@@ -313,6 +313,14 @@
     try{ localStorage.setItem('sb:pick:' + (currentId||'') + ':' + no, JSON.stringify(k)); }catch(e){}
   }
 
+  function optText(o){
+    const raw = String(o.html || '');
+    if(/<img|<svg|<math|katex/i.test(raw)) return raw;
+    const plain = raw.replace(/<[^>]*>/g,'').replace(/&nbsp;/g,'').replace(/\s/g,'').trim();
+    if(!plain || plain === o.k) return '<span class="ph-note">见题干图</span>';
+    return raw;
+  }
+
   function renderQ(q){
     if(keyword && !matches(q, keyword)) return '';
 
@@ -322,7 +330,7 @@
       if(o.correct) c += ' right';
       if(pick === o.k) c += ' sel';
       if(pick === o.k && !o.correct) c += ' wrong';
-      return `<div class="${c}" data-k="${escapeHtml(o.k)}"><span class="k">${escapeHtml(o.k)}</span><span class="v">${o.html || '（见题干图）'}</span></div>`;
+      return `<div class="${c}" data-k="${escapeHtml(o.k)}"><span class="k">${escapeHtml(o.k)}</span><span class="v">${optText(o)}</span></div>`;
     }).join('')}</div>` : '';
 
     const ansHtml = q.answerHtml ? `<div>${q.answerHtml}</div>` : '';
