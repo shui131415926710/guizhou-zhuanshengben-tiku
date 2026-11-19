@@ -25,6 +25,50 @@
     try{ localStorage.setItem(LSKEY, JSON.stringify(o)); }catch(e){}
   }
 
+  /* ---------- 数学公式渲染（KaTeX，失败则降级为纯文本） ---------- */
+  var KATEX_CSS = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css';
+  var KATEX_JS  = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js';
+  var KATEX_AUTO = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js';
+  var kx = { loading:false, failed:false, queue:[] };
+
+  function loadKatex(cb){
+    if(window.renderMathInElement){ cb(); return; }
+    if(kx.failed){ cb(); return; }
+    if(kx.loading){ kx.queue.push(cb); return; }
+    kx.loading = true; kx.queue = [cb];
+    var l = document.createElement('link');
+    l.rel = 'stylesheet'; l.href = KATEX_CSS; document.head.appendChild(l);
+    var s1 = document.createElement('script');
+    s1.src = KATEX_JS;
+    s1.onload = function(){
+      var s2 = document.createElement('script');
+      s2.src = KATEX_AUTO;
+      s2.onload = function(){ kx.loading = false; flushKx(); };
+      s2.onerror = function(){ kx.loading = false; kx.failed = true; flushKx(); };
+      document.head.appendChild(s2);
+    };
+    s1.onerror = function(){ kx.loading = false; kx.failed = true; flushKx(); };
+    document.head.appendChild(s1);
+    function flushKx(){ var q = kx.queue; kx.queue = []; q.forEach(function(f){ try{ f(); }catch(e){} }); }
+  }
+
+  function mathify(el){
+    if(!el) return;
+    if(!window.renderMathInElement){ return; }
+    try{
+      window.renderMathInElement(el, {
+        delimiters: [
+          { left:'$$', right:'$$', display:true },
+          { left:'$', right:'$', display:false },
+          { left:'\\[', right:'\\]', display:true },
+          { left:'\\(', right:'\\)', display:false }
+        ],
+        throwOnError: false,
+        ignoredTags: ['script','noscript','style','textarea','pre','code']
+      });
+    }catch(e){}
+  }
+
   /* ---------- 题目上下文 ---------- */
   function strip(html){
     return String(html||'').replace(/<img[^>]*>/g,' [图] ')
@@ -327,6 +371,13 @@
 
     body.innerHTML = '';
     wrap.forEach(function(w){ body.appendChild(w); });
+    loadKatex(function(){
+      wrap.forEach(function(w){
+        if(!w.className || String(w.className).indexOf('aiq-msg') < 0) return;
+        if(window.renderMathInElement) mathify(w);
+        else w.innerHTML = fmt(String(w.textContent || '').replace(/\$\$?/g, ''));
+      });
+    });
     body.scrollTop = body.scrollHeight;
   }
 
@@ -361,6 +412,7 @@
     var ctx = buildQA(q);
     var sys = '你是贵州专升本（高等数学 / 英语）辅导老师。学生正在做这套题。'
       + '回答要求：先给结论，再给步骤；数学推导逐步写清楚，指出用到的定理或公式；'
+      + '数学表达式用 LaTeX 写在 $...$ 里（例如 $\\ln 0.3<0$），页面会自动渲染成公式，不要用图片或字符画。'
       + '若题目给了标准答案，你的结论必须与标准答案一致，如认为答案可能有误要明确说明理由。'
       + '不要编造题目里没有的信息；看不清图片时说清缺什么。语气简洁，面向备考学生。';
     var userText = '题目信息：\n' + ctx.text + '\n\n我的问题：' + question
@@ -434,7 +486,14 @@
     function finish(acc){
       state.busy = false;
       state.panel.querySelector('#aiqSend').disabled = false;
-      if(acc){ state.history.push({ role:'assistant', content:acc }); live.innerHTML = fmt(acc); }
+      if(acc){
+        state.history.push({ role:'assistant', content:acc });
+        live.innerHTML = fmt(acc);
+        loadKatex(function(){
+          if(window.renderMathInElement) mathify(live);
+          else live.innerHTML = fmt(String(acc).replace(/\$\$?/g, ''));
+        });
+      }
       else if(!live.innerHTML){ live.remove(); }
     }
   }
