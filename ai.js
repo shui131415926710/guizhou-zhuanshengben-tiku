@@ -5,6 +5,8 @@
   'use strict';
   var LSKEY = 'sb:ai';
   var PRESETS = {
+    agnes:    { label:'Agnes AI（能看图）', base:'https://apihub.agnes-ai.com/v1', model:'agnes-2.5-flash', vision:true,
+                tip:'platform.agnes-ai.com 创建 API Key，粘贴 sk- 开头的整串（不要加 Bearer）。' },
     deepseek: { label:'DeepSeek（文本）', base:'https://api.deepseek.com/v1', model:'deepseek-chat', vision:false,
                 tip:'platform.deepseek.com 注册后创建 API Key，有免费额度。' },
     qwen:     { label:'通义千问 VL（能看图）', base:'https://dashscope.aliyuncs.com/compatible-mode/v1', model:'qwen-vl-max', vision:true,
@@ -173,7 +175,7 @@
     p.querySelector('#aiqClose').onclick = function(){ p.classList.remove('on'); };
     p.querySelector('#aiqCfg').onclick = function(){
       var c = cfg();
-      sel.value = c.preset || 'deepseek';
+      sel.value = c.preset || 'agnes';
       setWin.querySelector('#aiqBase').value = c.base || PRESETS[sel.value].base;
       setWin.querySelector('#aiqModel').value = c.model || PRESETS[sel.value].model;
       setWin.querySelector('#aiqKey').value = c.key || '';
