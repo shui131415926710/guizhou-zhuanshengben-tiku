@@ -141,7 +141,7 @@
   .aiq-fab::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:2px solid rgba(20,184,166,.5);\
     animation:aiqPulse 2.6s ease-out infinite;pointer-events:none}\
   @keyframes aiqPulse{0%{transform:scale(.85);opacity:.75}70%{transform:scale(1.45);opacity:0}100%{opacity:0}}\
-  .aiq{position:fixed;right:16px;bottom:96px;width:min(360px,88vw);max-height:min(560px,70vh);z-index:999;\
+  .aiq{position:fixed;right:14px;bottom:92px;width:min(330px,90vw);max-height:min(520px,64vh);z-index:999;\
     background:#fff;border:1px solid #e3e7ec;border-radius:14px;overflow:hidden;\
     display:none;flex-direction:column;box-shadow:0 14px 34px rgba(16,32,43,.2);\
     transform:translateZ(0);will-change:transform;isolation:isolate}\
@@ -163,7 +163,16 @@
   .aiq-in{flex:1;border:1px solid #e3e7ec;border-radius:9px;padding:8px 10px;font-size:13.5px;resize:none;max-height:110px;min-height:40px;outline:none;font-family:inherit}\
   .aiq-in:focus{border-color:#9ed3cb;box-shadow:0 0 0 3px rgba(15,118,110,.08)}\
   .aiq-send{background:#0f766e;color:#fff;border:0;border-radius:9px;padding:9px 15px;font-size:13px;cursor:pointer}\
+  .aiq-send.stop{background:#c0392b}\
   .aiq-send:disabled{opacity:.5;cursor:not-allowed}\
+  .aiq-hist{position:absolute;inset:0;background:#fff;z-index:6;display:none;flex-direction:column}\
+  .aiq-hist .list{flex:1;overflow:auto;padding:10px}\
+  .aiq-hist .item{border:1px solid #e8edf2;border-radius:9px;padding:9px 11px;margin-bottom:8px;cursor:pointer;background:#fff}\
+  .aiq-hist .item:hover{background:#f7fafc;border-color:#cfe0ec}\
+  .aiq-hist .no{font-size:12.5px;font-weight:650;color:#0d7a71}\
+  .aiq-hist .snip{font-size:12px;color:#5b6b79;margin-top:3px;line-height:1.6;max-height:38px;overflow:hidden}\
+  .aiq-hist .tm{font-size:11px;color:#9aa7b4;margin-top:4px}\
+  .aiq-hist .empty{color:#8a97a4;font-size:12.5px;padding:10px 6px;line-height:1.7}\
   .aiq-set{position:absolute;inset:0;background:#fff;z-index:5;padding:18px;overflow:auto}\
   .aiq-set h3{margin:0 0 12px;font-size:15px}\
   .aiq-set label{display:block;font-size:12.5px;color:#4b5a68;margin:12px 0 5px}\
@@ -186,7 +195,11 @@
 
     var fab = el('button', 'aiq-fab', '✦');
     fab.title = 'AI 答疑 · 自动识别当前题目';
-    fab.onclick = function(){ openAuto(); };
+    fab.onclick = function(){
+      var pp = state.panel;
+      if(pp && pp.classList.contains('on')){ pp.classList.remove('on'); return; }
+      openAuto();
+    };
     document.body.appendChild(fab);
 
     var p = el('div', 'aiq');    p.innerHTML = '\
@@ -194,6 +207,7 @@
         <span class="t" id="aiqTitle">AI 答疑</span>\
         <button class="aiq-btn" id="aiqPrev" title="上一题">‹</button>\
         <button class="aiq-btn" id="aiqNext" title="下一题">›</button>\
+        <button class="aiq-btn" id="aiqHist">历史</button>\
         <button class="aiq-btn" id="aiqCfg">设置</button>\
         <button class="aiq-btn" id="aiqClose">关闭</button>\
       </div>\
@@ -201,6 +215,14 @@
       <div class="aiq-foot">\
         <textarea class="aiq-in" id="aiqIn" placeholder="问：这题为什么选这个？帮我讲讲思路…"></textarea>\
         <button class="aiq-send" id="aiqSend">发送</button>\
+      </div>\
+      <div class="aiq-hist">\
+        <div class="aiq-top">\
+          <span class="t">对话历史（按题保存）</span>\
+          <button class="aiq-btn" id="aiqHistClear">清空</button>\
+          <button class="aiq-btn" id="aiqHistBack">返回</button>\
+        </div>\
+        <div class="list" id="aiqHistList"></div>\
       </div>';
     document.body.appendChild(p);
     state.panel = p;
@@ -239,6 +261,9 @@
     p.querySelector('#aiqClose').onclick = function(){ p.classList.remove('on'); };
     p.querySelector('#aiqPrev').onclick = function(){ shift(-1); };
     p.querySelector('#aiqNext').onclick = function(){ shift(1); };
+    p.querySelector('#aiqHist').onclick = function(){ showHist(); };
+    p.querySelector('#aiqHistBack').onclick = function(){ p.querySelector('.aiq-hist').style.display = 'none'; };
+    p.querySelector('#aiqHistClear').onclick = function(){ clearHist(); };
     p.querySelector('#aiqCfg').onclick = function(){
       var c = cfg();
       sel.value = c.preset || 'agnes';
@@ -261,18 +286,95 @@
       render();
     };
 
-    p.querySelector('#aiqSend').onclick = function(){ send(); };
+    p.querySelector('#aiqSend').onclick = function(){ if(state.busy) stopGen(); else send(); };
     var ta = p.querySelector('#aiqIn');
     ta.addEventListener('keydown', function(e){
       if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); send(); }
     });
   }
 
+  /* ---------- 对话历史（按试卷 + 题号持久化） ---------- */
+  function pid(){ return window.__currentPaperId || ''; }
+  function histKey(no){ return 'sb:aichat:' + pid() + ':' + no; }
+  function loadHist(no){
+    try{ var v = localStorage.getItem(histKey(no)); return v ? JSON.parse(v) : []; }catch(e){ return []; }
+  }
+  function saveHist(no, h){
+    if(!no) return;
+    try{
+      var arr = (h || []).slice(-40);
+      if(arr.length) localStorage.setItem(histKey(no), JSON.stringify(arr));
+      else localStorage.removeItem(histKey(no));
+    }catch(e){}
+  }
+  function histNos(){
+    var out = [], pre = 'sb:aichat:' + pid() + ':';
+    try{
+      for(var i=0;i<localStorage.length;i++){
+        var k = localStorage.key(i);
+        if(k && k.indexOf(pre) === 0){ var n = +k.slice(pre.length); if(n) out.push(n); }
+      }
+    }catch(e){}
+    return out;
+  }
+
+  function showHist(){
+    var p = state.panel;
+    var list = p.querySelector('#aiqHistList');
+    var win = p.querySelector('.aiq-hist');
+    list.innerHTML = '';
+    var nos = histNos();
+    if(!nos.length){
+      list.innerHTML = '<div class="empty">这套卷还没有对话记录。<br>问过之后会按题号自动存到这里，换题、关面板都不会丢。</div>';
+      win.style.display = 'flex';
+      return;
+    }
+    var items = nos.map(function(no){
+      var arr = loadHist(no);
+      return { no: no, arr: arr, last: arr.length ? arr[arr.length-1] : null };
+    }).sort(function(a,b){ return ((b.last && b.last.ts) || 0) - ((a.last && a.last.ts) || 0); });
+
+    var pk = currentPk();
+    items.forEach(function(it){
+      var d = el('div', 'item');
+      var snip = String((it.last && it.last.content) || '').replace(/\s+/g,' ').slice(0, 80);
+      var tm = it.last && it.last.ts
+        ? new Date(it.last.ts).toLocaleString('zh-CN', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })
+        : '';
+      d.innerHTML = '<div class="no">第 ' + it.no + ' 题 · ' + it.arr.length + ' 条</div>'
+        + '<div class="snip">' + escHtml(snip) + '</div>'
+        + '<div class="tm">' + escHtml(tm) + '</div>';
+      d.onclick = function(){
+        win.style.display = 'none';
+        var q = pk ? pk.questions.filter(function(x){ return x.no === it.no; })[0] : null;
+        if(q) open(q, { paperTitle: pk.title });
+      };
+      list.appendChild(d);
+    });
+    win.style.display = 'flex';
+  }
+
+  function clearHist(){
+    var pre = 'sb:aichat:' + pid() + ':';
+    try{
+      var keys = [];
+      for(var i=0;i<localStorage.length;i++){
+        var k = localStorage.key(i);
+        if(k && k.indexOf(pre) === 0) keys.push(k);
+      }
+      keys.forEach(function(k){ localStorage.removeItem(k); });
+    }catch(e){}
+    state.history = [];
+    render();
+    showHist();
+  }
+
   function open(q, ctx){
     ensureUI();
     if(!q) return;
+    var keepY = window.scrollY;
     state.q = q; state.ctx = ctx || {};
-    state.history = [];
+    state.history = loadHist(q.no);
     var p = state.panel;
     p.classList.add('on');
     var pk = currentPk();
@@ -281,11 +383,18 @@
     p.querySelector('#aiqTitle').textContent = (title ? title + ' · ' : '') + '第 ' + q.no + ' 题'
       + (idx >= 0 ? ' / 共 ' + pk.questions.length + ' 题' : '');
     render();
+    requestAnimationFrame(function(){ if(window.scrollY !== keepY) window.scrollTo(0, keepY); });
   }
 
   /* ---------- 自动识别当前在做的题 ---------- */
   function currentPk(){
     var pid = window.__currentPaperId;
+    if(!pid){
+      // 兜底：题目卡片上带了试卷 id
+      var card = document.querySelector('.q[data-no][data-paper]');
+      if(card) pid = card.getAttribute('data-paper');
+      if(pid) window.__currentPaperId = pid;
+    }
     if(!pid) return null;
     return (window.PAPERS || {})[pid] || null;
   }
@@ -320,10 +429,21 @@
 
   function openAuto(){
     ensureUI();
+    var p = state.panel;
+    p.classList.add('on');
     var pk = currentPk();
-    if(!pk){ alert('还没选中试卷，先在左侧列表点一套真题或模拟卷。'); return; }
+    if(!pk){
+      p.querySelector('#aiqTitle').textContent = 'AI 答疑';
+      var b0 = p.querySelector('#aiqBody');
+      b0.innerHTML = '<div class="aiq-msg ai" style="color:#8a97a4">还没选中试卷。先在左侧列表点一套真题或模拟卷，题目出来后再点这个小球。</div>';
+      return;
+    }
     var sel = pickNo();
-    if(!sel){ alert('没找到题目。'); return; }
+    if(!sel){
+      p.querySelector('#aiqTitle').textContent = 'AI 答疑';
+      p.querySelector('#aiqBody').innerHTML = '<div class="aiq-msg ai" style="color:#8a97a4">试卷里没找到题目卡片，请刷新页面后重试。</div>';
+      return;
+    }
     var q = pk.questions.filter(function(x){ return x.no === sel.no; })[0] || pk.questions[0];
     open(q, { paperTitle: pk.title });
     var tip = document.createElement('div');
@@ -353,7 +473,7 @@
     head.textContent = txt || '（题干为图片）';
     var wrap = [head];
 
-    if(!c.key){
+    if(!c.key && !state.history.length){
       wrap.push(el('div', 'aiq-msg ai', localAnswer().replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')));
     }
     state.history.forEach(function(m){
@@ -396,16 +516,22 @@
     var text = ta.value.trim();
     if(!text) return;
     ta.value = '';
-    state.history.push({ role:'user', content:text });
+    state.history.push({ role:'user', content:text, ts:Date.now() });
+    saveHist(state.q.no, state.history);
     render();
 
     var c = cfg();
     if(!c.key){
-      state.history.push({ role:'assistant', content: localAnswer() });
+      state.history.push({ role:'assistant', content: localAnswer(), ts:Date.now() });
+      saveHist(state.q.no, state.history);
       render();
       return;
     }
     ask(text, c);
+  }
+
+  function stopGen(){
+    if(state.ctrl){ try{ state.ctrl.abort(); }catch(e){} }
   }
 
   function buildMessages(q, question, vision){
@@ -427,12 +553,18 @@
 
   function ask(text, c){
     state.busy = true;
-    state.panel.querySelector('#aiqSend').disabled = true;
+    var btn = state.panel.querySelector('#aiqSend');
+    btn.disabled = false;
+    btn.textContent = '停止';
+    btn.classList.add('stop');
 
     var body = state.panel.querySelector('#aiqBody');
-    var live = el('div', 'aiq-msg ai', '<span style="color:#8a97a4">正在读题并思考…（带公式图的题约 20–40 秒）</span>');
+    var live = el('div', 'aiq-msg ai', '<span style="color:#8a97a4">正在读题并思考…（带公式图的题约 20–40 秒，随时可点「停止」）</span>');
     body.appendChild(live);
     body.scrollTop = body.scrollHeight;
+
+    var acc = '';
+    state.ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
 
     var url = (c.base || '').replace(/\/+$/, '') + '/chat/completions';
     var payload = {
@@ -445,7 +577,8 @@
     fetch(url, {
       method:'POST',
       headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer ' + c.key },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
+      signal: state.ctrl ? state.ctrl.signal : undefined
     }).then(function(res){
       if(!res.ok){
         return res.text().then(function(t){
@@ -454,10 +587,10 @@
       }
       var reader = res.body.getReader();
       var dec = new TextDecoder();
-      var buf = '', acc = '';
+      var buf = '';
       function pump(){
         return reader.read().then(function(r){
-          if(r.done){ finish(acc); return; }
+          if(r.done){ resetBtn(); settle(acc, ''); return; }
           buf += dec.decode(r.value, {stream:true});
           var lines = buf.split('\n');
           buf = lines.pop();
@@ -477,24 +610,38 @@
       }
       return pump();
     }).catch(function(err){
+      resetBtn();
+      if(err && (err.name === 'AbortError' || String(err).indexOf('AbortError') >= 0)){
+        settle(acc, acc ? '⏹ 已停止生成' : '⏹ 已停止');
+        return;
+      }
       live.className = 'aiq-msg';
-      live.innerHTML = '<span class="aiq-err">请求失败：' + escHtml(err.message) +
+      live.innerHTML = '<span class="aiq-err">请求失败：' + escHtml(err.message || String(err)) +
         '<br>检查 Base URL / Key / 模型名是否正确，或该服务是否支持浏览器直连（部分服务需要 CORS 白名单）。</span>';
-      finish(null);
     });
 
-    function finish(acc){
+    function resetBtn(){
       state.busy = false;
-      state.panel.querySelector('#aiqSend').disabled = false;
-      if(acc){
-        state.history.push({ role:'assistant', content:acc });
-        live.innerHTML = fmt(acc);
+      state.ctrl = null;
+      btn.disabled = false;
+      btn.textContent = '发送';
+      btn.classList.remove('stop');
+    }
+
+    function settle(acc2, note){
+      var content = acc2 || '';
+      if(note) content = (content ? content + '\n\n' : '') + note;
+      if(content){
+        state.history.push({ role:'assistant', content:content, ts:Date.now() });
+        saveHist(state.q.no, state.history);
+        live.innerHTML = fmt(content);
         loadKatex(function(){
           if(window.renderMathInElement) mathify(live);
-          else live.innerHTML = fmt(String(acc).replace(/\$\$?/g, ''));
+          else live.innerHTML = fmt(String(content).replace(/\$\$?/g, ''));
         });
+      } else if(!live.innerHTML){
+        live.remove();
       }
-      else if(!live.innerHTML){ live.remove(); }
     }
   }
 

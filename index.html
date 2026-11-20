@@ -364,7 +364,7 @@
         <div class="myans-head"><span class="lb">我的作答</span><span class="saved"></span></div>
         <textarea class="ansbox" data-ano="${q.no}" placeholder="在这里写答案/解题过程，自动保存在本机">${escapeHtml(getAns(q.no))}</textarea>
       </div>`;
-    return `<article class="q ${showAll?'ans-open':''}" data-no="${q.no}">
+    return `<article class="q ${showAll?'ans-open':''}" data-no="${q.no}" data-paper="${currentId || ''}">
       <div class="q-head">
         <span class="qno">${q.no}</span>
         <span class="tag ${q.type==='choice'?'choice':''}">${q.type==='choice'?'选择题':'主观题'}</span>
@@ -482,6 +482,6 @@
   refresh();
 })();
 </script>
-<script src="ai.js?v=20261119h"></script>
+<script src="ai.js?v=20261120a"></script>
 </body>
 </html>

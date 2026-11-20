@@ -769,7 +769,7 @@
     const ansTxt = q.answer ? esc(q.answer) : '';
     const ana = q.analysis ? `<div class="ana"><b>解析：</b>${esc(q.analysis)}</div>` : '';
     const stats = q.stats ? `<div class="share">${esc(q.stats)}</div>` : '';
-    return `<article class="q ${showAll?'ans-open':''}" data-idx="${idx}" data-no="${q.no}">
+    return `<article class="q ${showAll?'ans-open':''}" data-idx="${idx}" data-no="${q.no}" data-paper="${paper.id}">
       <div class="q-head">
         <span class="qno">${q.no}</span>
         <span class="tag ${q.type==='choice'?'choice':''}">${q.type==='choice'?'选择题':'主观题'}</span>
@@ -959,6 +959,6 @@
   openPaper(pickDefault());
 })();
 </script>
-<script src="ai.js?v=20261119h"></script>
+<script src="ai.js?v=20261120a"></script>
 </body>
 </html>
