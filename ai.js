@@ -441,7 +441,12 @@
     var sel = pickNo();
     if(!sel){
       p.querySelector('#aiqTitle').textContent = 'AI 答疑';
-      p.querySelector('#aiqBody').innerHTML = '<div class="aiq-msg ai" style="color:#8a97a4">试卷里没找到题目卡片，请刷新页面后重试。</div>';
+      var kw0 = window.__sbKeyword;
+      p.querySelector('#aiqBody').innerHTML = kw0
+        ? '<div class="aiq-msg ai">页面搜索框里是“' + escHtml(kw0) + '”，题目被它过滤掉了，所以页面上看不到题。<div style="margin-top:8px"><button class="aiq-chip" id="aiqClrKw" style="cursor:pointer">清空搜索</button></div></div>'
+        : '<div class="aiq-msg ai" style="color:#8a97a4">试卷里没找到题目卡片，请刷新页面后重试。</div>';
+      var cb = p.querySelector('#aiqClrKw');
+      if(cb) cb.onclick = function(){ if(window.__sbClearSearch) window.__sbClearSearch(); openAuto(); };
       return;
     }
     var q = pk.questions.filter(function(x){ return x.no === sel.no; })[0] || pk.questions[0];
@@ -452,6 +457,18 @@
     tip.textContent = '已按' + sel.src + '位置识别：第 ' + q.no + ' 题，可点右上角 ‹ › 换题';
     var body = state.panel.querySelector('#aiqBody');
     body.insertBefore(tip, body.firstChild.nextSibling);
+    var kw = window.__sbKeyword;
+    if(kw){
+      var warn = document.createElement('div');
+      warn.className = 'aiq-msg';
+      warn.style.cssText = 'font-size:12px;color:#8a5a00;background:#fff8e6;border:1px solid #f0e0b8;border-radius:8px;padding:7px 10px;margin-bottom:10px;cursor:pointer';
+      warn.textContent = '页面搜索框里是“' + kw + '”，题目被它过滤掉了。点这里清空搜索。';
+      warn.onclick = function(){
+        if(window.__sbClearSearch) window.__sbClearSearch();
+        warn.remove();
+      };
+      body.insertBefore(warn, tip.nextSibling);
+    }
   }
 
   function shift(n){

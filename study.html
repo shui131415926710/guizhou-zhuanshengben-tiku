@@ -919,15 +919,27 @@
   document.getElementById('collapseAll').onclick = ()=>{ document.getElementById('allAns').checked=false; document.getElementById('allAns').onchange({target:{checked:false}}); };
 
   let timer=null;
+  function clearKw(){
+    elSearch.value = '';
+    keyword = '';
+    window.__sbKeyword = '';
+    renderPaper();
+  }
+  window.__sbClearSearch = clearKw;
   elSearch.oninput = e=>{
     clearTimeout(timer);
     timer = setTimeout(()=>{
       keyword = e.target.value.trim();
+      window.__sbKeyword = keyword;
       if(!paper) return;
       if(!keyword){ renderPaper(); return; }
       const hits = paper.questions.filter(q=>matches(q, keyword));
-      Q.innerHTML = hits.length ? hits.map(q=>qCard(q, paper.questions.indexOf(q))).join('') : '<div class="loading">没有匹配的题目</div>';
+      Q.innerHTML = hits.length
+        ? hits.map(q=>qCard(q, paper.questions.indexOf(q))).join('')
+        : `<div class="loading">没有匹配的题目。<br>搜索框里现在是“<b>${esc(keyword)}</b>”，所以题目被过滤掉了。<br><button class="btn sm primary" id="clrKw" style="margin-top:8px">清空搜索，显示全部 ${paper.questions.length} 题</button></div>`;
       initMarks();
+      const ck = document.getElementById('clrKw');
+      if(ck) ck.onclick = clearKw;
     }, 220);
   };
 
@@ -959,6 +971,6 @@
   openPaper(pickDefault());
 })();
 </script>
-<script src="ai.js?v=20261120a"></script>
+<script src="ai.js?v=20261120b"></script>
 </body>
 </html>
