@@ -205,7 +205,7 @@
 
   <div class="main">
     <div class="toolbar">
-      <input class="search" id="search" placeholder="搜索题干 / 选项 / 答案关键词">
+      <input class="search" id="search" name="sbq_kw" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="搜索题干 / 选项 / 答案关键词">
       <button class="btn" id="expandAll">展开全部答案</button>
       <button class="btn" id="collapseAll">收起答案</button>
     </div>
@@ -486,15 +486,33 @@
   document.getElementById('expandAll').onclick = ()=>setAll(true);
   document.getElementById('collapseAll').onclick = ()=>setAll(false);
 
-  let timer = null;
+  let timer = null, userTyped = false;
   elSearch.oninput = e=>{
+    userTyped = true;
     clearTimeout(timer);
     timer = setTimeout(()=>{ keyword = e.target.value.trim(); window.__sbKeyword = keyword; renderPaper(); }, 250);
   };
 
   refresh();
+
+  // 浏览器刷新后会恢复输入框旧值：本次没打字却出现关键词时清掉并说明
+  setTimeout(()=>{
+    if(userTyped) return;
+    const v = (elSearch.value || '').trim();
+    if(!v) return;
+    elSearch.value = ''; keyword = ''; window.__sbKeyword = '';
+    if(currentId){
+      renderPaper();
+      const d = document.createElement('div');
+      d.className = 'loading';
+      d.style.cssText = 'background:#fff8e6;border:1px solid #f0e0b8;color:#8a5a00;border-radius:8px;margin-bottom:10px';
+      d.textContent = '搜索框里原本残留着“' + v + '”，这是浏览器自动恢复的旧内容，已替你清空。';
+      elQ.insertBefore(d, elQ.firstChild);
+      setTimeout(()=>d.remove(), 7000);
+    }
+  }, 700);
 })();
 </script>
-<script src="ai.js?v=20261120b"></script>
+<script src="ai.js?v=20261120c"></script>
 </body>
 </html>

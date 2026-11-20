@@ -194,7 +194,7 @@
 
   <div class="main">
     <div class="toolbar">
-      <input class="search" id="search" placeholder="搜索题干 / 选项 / 材料关键词">
+      <input class="search" id="search" name="sbq_kw" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="搜索题干 / 选项 / 材料关键词">
       <button class="btn primary" id="openBoard">打开草稿纸</button>
       <button class="btn" id="expandAll">展开答案</button>
       <button class="btn" id="collapseAll">收起答案</button>
@@ -918,7 +918,15 @@
   document.getElementById('expandAll').onclick = ()=>{ document.getElementById('allAns').checked=true; document.getElementById('allAns').onchange({target:{checked:true}}); };
   document.getElementById('collapseAll').onclick = ()=>{ document.getElementById('allAns').checked=false; document.getElementById('allAns').onchange({target:{checked:false}}); };
 
-  let timer=null;
+  let timer=null, userTyped=false;
+  function flash(msg){
+    const d = document.createElement('div');
+    d.className = 'loading';
+    d.style.cssText = 'background:#fff8e6;border:1px solid #f0e0b8;color:#8a5a00;border-radius:8px;margin-bottom:10px';
+    d.textContent = msg;
+    Q.insertBefore(d, Q.firstChild);
+    setTimeout(()=>d.remove(), 7000);
+  }
   function clearKw(){
     elSearch.value = '';
     keyword = '';
@@ -927,6 +935,7 @@
   }
   window.__sbClearSearch = clearKw;
   elSearch.oninput = e=>{
+    userTyped = true;
     clearTimeout(timer);
     timer = setTimeout(()=>{
       keyword = e.target.value.trim();
@@ -969,8 +978,21 @@
   })();
 
   openPaper(pickDefault());
+
+  // Edge/Chrome 刷新后会把输入框里的旧值恢复回来。如果本次没打字却冒出关键词，
+  // 直接清掉并说明，避免看起来像“题目丢了”。
+  setTimeout(()=>{
+    if(userTyped) return;
+    const v = (elSearch.value || '').trim();
+    if(!v) return;
+    elSearch.value = ''; keyword = ''; window.__sbKeyword = '';
+    if(paper){
+      renderPaper();
+      flash('搜索框里原本残留着“' + v + '”，这是浏览器自动恢复的旧内容，已替你清空。');
+    }
+  }, 700);
 })();
 </script>
-<script src="ai.js?v=20261120b"></script>
+<script src="ai.js?v=20261120c"></script>
 </body>
 </html>
