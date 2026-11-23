@@ -664,6 +664,12 @@
 
   window.AIQA = { open: open, cfg: cfg };
 
+  // 供题库页/工作台对题卡区域做公式渲染（KaTeX 未加载成功时静默跳过）
+  window.__renderMath = function(root){
+    if(!root) return;
+    loadKatex(function(){ mathify(root); });
+  };
+
   // 页面一加载就把悬浮球挂出来（面板默认收起）
   if(document.body){ ensureUI(); }
   else { document.addEventListener('DOMContentLoaded', ensureUI); }

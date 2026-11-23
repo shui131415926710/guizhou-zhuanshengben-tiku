@@ -434,6 +434,7 @@
         btn.textContent = open ? '隐藏答案' : '查看答案';
       };
     });
+    if(window.__renderMath) window.__renderMath(elQ);
   }
 
   function matches(q, kw){
@@ -513,6 +514,6 @@
   }, 700);
 })();
 </script>
-<script src="ai.js?v=20261120c"></script>
+<script src="ai.js?v=20261120d"></script>
 </body>
 </html>

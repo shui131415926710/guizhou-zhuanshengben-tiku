@@ -823,6 +823,7 @@
       const ab = card.querySelector('.ai');
       if(ab) ab.onclick = ()=> window.AIQA && window.AIQA.open(paper.questions[i], {paperTitle: paper.title});
     });
+    if(window.__renderMath) window.__renderMath(Q);
   }
 
   function matches(q, kw){
@@ -947,6 +948,7 @@
         ? hits.map(q=>qCard(q, paper.questions.indexOf(q))).join('')
         : `<div class="loading">没有匹配的题目。<br>搜索框里现在是“<b>${esc(keyword)}</b>”，所以题目被过滤掉了。<br><button class="btn sm primary" id="clrKw" style="margin-top:8px">清空搜索，显示全部 ${paper.questions.length} 题</button></div>`;
       initMarks();
+      if(window.__renderMath) window.__renderMath(Q);
       const ck = document.getElementById('clrKw');
       if(ck) ck.onclick = clearKw;
     }, 220);
@@ -993,6 +995,6 @@
   }, 700);
 })();
 </script>
-<script src="ai.js?v=20261120c"></script>
+<script src="ai.js?v=20261120d"></script>
 </body>
 </html>
