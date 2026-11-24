@@ -253,7 +253,7 @@
     elHead.innerHTML = '';
     elQ.innerHTML = '<div class="loading">正在载入题目…</div>';
     const s = document.createElement('script');
-    s.src = 'papers/' + id + '.js';
+    s.src = 'papers/' + id + '.js?v=20261124';
     s.onload = ()=>{
       if (!PAPERS[id]) { elQ.innerHTML = '<div class="loading">题目数据异常，请刷新重试。</div>'; return; }
       cb();
