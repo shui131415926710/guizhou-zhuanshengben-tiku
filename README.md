@@ -27,6 +27,7 @@
 │   ├── math-2024.js      # 真题：<科目>-<年份>
 │   ├── math-sim-01.js    # 模拟卷：<科目>-sim-<编号>
 │   └── ...
+├── assets/katex/     # KaTeX 0.16.9 本地化托管（js/css/auto-render/60 个字体），不依赖外部 CDN
 ├── data.json         # 全量数据（8.5 MB，标准 JSON，便于二次处理；站点不加载）
 ├── build_data.py     # 把原始采集 JSON 规范化成上述数据文件
 └── README.md
