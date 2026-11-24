@@ -26,27 +26,41 @@
   }
 
   /* ---------- 数学公式渲染（KaTeX 本地化托管，失败则降级为纯文本） ---------- */
+  var KATEX_VER  = '?v=20261126';
   var KATEX_BASE = 'assets/katex/';
-  var KATEX_CSS  = KATEX_BASE + 'katex.min.css';
-  var KATEX_JS   = KATEX_BASE + 'katex.min.js';
-  var KATEX_AUTO = KATEX_BASE + 'contrib/auto-render.min.js';
-  var kx = { loading:false, queue:[], timer:null };
+  var KATEX_CSS  = KATEX_BASE + 'katex.min.css' + KATEX_VER;
+  var KATEX_JS   = KATEX_BASE + 'katex.min.js' + KATEX_VER;
+  var KATEX_AUTO = KATEX_BASE + 'contrib/auto-render.min.js' + KATEX_VER;
+  var kx = { loading:false, queue:[], timer:null, roots:[] };
+
+  function hasTag(attr, needle){
+    var tags = document.head.querySelectorAll(attr === 'link' ? 'link[rel="stylesheet"]' : 'script');
+    for(var i=0;i<tags.length;i++){
+      var href = tags[i].getAttribute('href') || tags[i].getAttribute('src') || '';
+      if(href.indexOf(needle) >= 0) return true;
+    }
+    return false;
+  }
 
   function loadKatex(cb){
     if(window.renderMathInElement){ try{ cb(); }catch(e){} return; }
     if(kx.loading){ kx.queue.push(cb); return; }
     kx.loading = true; kx.queue = [cb];
-    var l = document.createElement('link');
-    l.rel = 'stylesheet'; l.href = KATEX_CSS; document.head.appendChild(l);
+    if(!hasTag('link', 'katex.min.css')){
+      var l = document.createElement('link');
+      l.rel = 'stylesheet'; l.href = KATEX_CSS; document.head.appendChild(l);
+    }
     var done = function(){
       kx.loading = false;
       if(kx.timer){ clearTimeout(kx.timer); kx.timer = null; }
       flushKx();
+      rescanRoots();
     };
     var s1 = document.createElement('script');
     s1.src = KATEX_JS;
     var s2 = document.createElement('script');
     s1.onload = function(){
+      if(window.renderMathInElement){ done(); return; }
       s2.src = KATEX_AUTO;
       s2.onload = done; s2.onerror = done;
       document.head.appendChild(s2);
@@ -55,6 +69,14 @@
     kx.timer = setTimeout(done, 10000);
     document.head.appendChild(s1);
     function flushKx(){ var q = kx.queue; kx.queue = []; q.forEach(function(f){ try{ f(); }catch(e){} }); }
+  }
+
+  // 库就绪后，补渲染此前已注册、但仍残留 $ 的题卡区域（自愈首次加载抖动）
+  function rescanRoots(){
+    if(!window.renderMathInElement) return;
+    kx.roots.forEach(function(r){
+      try{ if(r && r.isConnected && r.innerHTML.indexOf('$') >= 0) mathify(r); }catch(e){}
+    });
   }
 
   function mathify(el){
@@ -672,6 +694,7 @@
   // 供题库页/工作台对题卡区域做公式渲染（KaTeX 未加载成功时静默跳过）
   window.__renderMath = function(root){
     if(!root) return;
+    if(kx.roots.indexOf(root) < 0) kx.roots.push(root);
     loadKatex(function(){ mathify(root); });
   };
 
