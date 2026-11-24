@@ -541,6 +541,7 @@
     }
     qfBody.innerHTML = html;
     qfBody.scrollTop = 0;
+    if(window.__renderMath) window.__renderMath(qfBody);
     qfBody.querySelectorAll('.opt').forEach(el=>{
       el.onclick = ()=>{
         const qq = paper.questions[curQ];
@@ -677,6 +678,7 @@
     });
 
     readerEl.classList.add('on');
+    if(window.__renderMath) window.__renderMath(readerEl);
     const saved = LS.get('mark:' + rdKey, null);
     const strokes = Array.isArray(saved) ? saved : ((saved && saved.strokes) || []);
     const view = (saved && saved.view) || {s:1, x:0, y:0};
@@ -995,6 +997,6 @@
   }, 700);
 })();
 </script>
-<script src="ai.js?v=20261120d"></script>
+<script src="ai.js?v=20261124"></script>
 </body>
 </html>
