@@ -25,29 +25,34 @@
     try{ localStorage.setItem(LSKEY, JSON.stringify(o)); }catch(e){}
   }
 
-  /* ---------- 数学公式渲染（KaTeX，失败则降级为纯文本） ---------- */
-  var KATEX_CSS = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css';
-  var KATEX_JS  = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js';
-  var KATEX_AUTO = 'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js';
-  var kx = { loading:false, failed:false, queue:[] };
+  /* ---------- 数学公式渲染（KaTeX 本地化托管，失败则降级为纯文本） ---------- */
+  var KATEX_BASE = 'assets/katex/';
+  var KATEX_CSS  = KATEX_BASE + 'katex.min.css';
+  var KATEX_JS   = KATEX_BASE + 'katex.min.js';
+  var KATEX_AUTO = KATEX_BASE + 'contrib/auto-render.min.js';
+  var kx = { loading:false, queue:[], timer:null };
 
   function loadKatex(cb){
-    if(window.renderMathInElement){ cb(); return; }
-    if(kx.failed){ cb(); return; }
+    if(window.renderMathInElement){ try{ cb(); }catch(e){} return; }
     if(kx.loading){ kx.queue.push(cb); return; }
     kx.loading = true; kx.queue = [cb];
     var l = document.createElement('link');
     l.rel = 'stylesheet'; l.href = KATEX_CSS; document.head.appendChild(l);
+    var done = function(){
+      kx.loading = false;
+      if(kx.timer){ clearTimeout(kx.timer); kx.timer = null; }
+      flushKx();
+    };
     var s1 = document.createElement('script');
     s1.src = KATEX_JS;
+    var s2 = document.createElement('script');
     s1.onload = function(){
-      var s2 = document.createElement('script');
       s2.src = KATEX_AUTO;
-      s2.onload = function(){ kx.loading = false; flushKx(); };
-      s2.onerror = function(){ kx.loading = false; kx.failed = true; flushKx(); };
+      s2.onload = done; s2.onerror = done;
       document.head.appendChild(s2);
     };
-    s1.onerror = function(){ kx.loading = false; kx.failed = true; flushKx(); };
+    s1.onerror = done;
+    kx.timer = setTimeout(done, 10000);
     document.head.appendChild(s1);
     function flushKx(){ var q = kx.queue; kx.queue = []; q.forEach(function(f){ try{ f(); }catch(e){} }); }
   }
