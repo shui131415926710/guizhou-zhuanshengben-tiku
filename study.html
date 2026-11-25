@@ -827,6 +827,20 @@
       if(mb) mb.onclick = ()=>openReader(i);
       const ab = card.querySelector('.ai');
       if(ab) ab.onclick = ()=> window.AIQA && window.AIQA.open(paper.questions[i], {paperTitle: paper.title});
+      const box = card.querySelector('.ansbox');
+      if(box){
+        const sv = card.querySelector('.saved');
+        let t = null;
+        box.oninput = ()=>{
+          if(sv) sv.textContent = '输入中…';
+          clearTimeout(t);
+          t = setTimeout(()=>{
+            setAns(+box.dataset.ano, box.value);
+            if(sv) sv.textContent = box.value.trim() ? '已保存到本机' : '已清空';
+          }, 500);
+        };
+        box.addEventListener('blur', ()=>{ setAns(+box.dataset.ano, box.value); if(sv) sv.textContent = box.value.trim() ? '已保存到本机' : ''; });
+      }
     });
     if(window.__renderMath) window.__renderMath(Q);
   }
