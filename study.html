@@ -247,11 +247,17 @@
     <div class="grp">
       <button class="btn sm on" id="toolPen">笔</button>
       <button class="btn sm" id="toolEraser">橡皮</button>
-      <button class="btn sm" id="toolPan">移动</button>
     </div>
     <div class="grp" id="colors"></div>
     <div class="grp">
-      <label>粗细<input type="range" id="penW" min="1" max="24" value="3"></label>
+      <label>笔粗<input type="range" id="penW" min="1" max="24" value="3"></label>
+      <label>橡皮粗<input type="range" id="eraserW" min="1" max="40" value="8"></label>
+    </div>
+    <div class="grp">
+      <button class="btn sm" id="pagePrev" title="上一页">‹</button>
+      <span id="pageTxt">1/1</span>
+      <button class="btn sm" id="pageNext" title="下一页">›</button>
+      <button class="btn sm" id="pageAdd">新页</button>
     </div>
     <div class="grp">
       <button class="btn sm" id="undoBtn">撤销</button>
@@ -259,8 +265,6 @@
       <button class="btn sm" id="saveBtn">导出图片</button>
     </div>
     <div class="grp">
-      <label>缩放<span id="zoomTxt" style="color:#4b5a68;font-weight:600">100%</span></label>
-      <button class="btn sm" id="zoomReset">复位</button>
       <button class="btn sm" id="boardClose">关闭</button>
     </div>
   </div>
@@ -317,15 +321,23 @@
   /* ---------- 手写板内核 ---------- */
   function Board(canvas, opt){
     const ctx = canvas.getContext('2d');
+    let initPages;
+    if(Array.isArray(opt.pages) && opt.pages.length){ initPages = opt.pages; }
+    else { initPages = [{ strokes: opt.strokes||[], view: opt.view||{s:1,x:0,y:0} }]; }
     const st = {
-      strokes: opt.strokes || [],          // [{c,w,pts:[[nx,ny]...]}] 归一化
-      view: opt.view || {s:1, x:0, y:0},   // 画布视图（世界坐标变换）
+      pages: initPages,
+      page: Math.max(0, Math.min(opt.page||0, initPages.length-1)),
       color: opt.color || '#1f2937',
-      width: opt.width || 3,
+      penW: opt.penW || opt.width || 3,
+      eraserW: opt.eraserW || Math.max(4, (opt.width||3)*2),
       tool: 'pen',
       size: {w:0, h:0},
       dpr: Math.min(window.devicePixelRatio || 1, 2)
     };
+    function curPage(){ return st.pages[st.page]; }
+    Object.defineProperty(st,'strokes',{get(){ return curPage().strokes; }});
+    Object.defineProperty(st,'view',{get(){ return curPage().view; }, set(v){ curPage().view = v; }});
+    function curWidth(){ return st.tool==='eraser' ? st.eraserW : st.penW; }
     const api = { st: st, ctx: ctx, onChange: opt.onChange || function(){} };
 
     function resize(){
@@ -391,14 +403,13 @@
       return [e.clientX - r.left, e.clientY - r.top];
     }
 
-    let drawing=false, last=null, panning=false, panStart=null;
+    let drawing=false, last=null;
 
     canvas.addEventListener('pointerdown', e=>{
       try{ canvas.setPointerCapture(e.pointerId); }catch(err){}
       const [x,y] = pos(e);
-      if(st.tool === 'pan'){ panning = true; panStart = {x, y, vx: st.view.x, vy: st.view.y}; return; }
       drawing = true;
-      const s = {c: st.color, w: st.width, pts: [toNorm(x,y)], erased: st.tool==='eraser'};
+      const s = {c: st.color, w: curWidth(), pts: [toNorm(x,y)], erased: st.tool==='eraser'};
       st.strokes.push(s);
       last = s;
       redraw();
@@ -406,7 +417,6 @@
 
     canvas.addEventListener('pointermove', e=>{
       const [x,y] = pos(e);
-      if(panning){ st.view.x = panStart.vx + (x - panStart.x); st.view.y = panStart.vy + (y - panStart.y); redraw(); return; }
       if(!drawing || !last) return;
       let evs = [];
       try{ evs = e.getCoalescedEvents ? e.getCoalescedEvents() : []; }catch(err){ evs = []; }
@@ -420,37 +430,60 @@
       });
       // 压感：有 pressure 时按力度调宽
       if(e.pressure && e.pointerType === 'pen'){
-        last.w = Math.max(1, st.width * (0.45 + e.pressure * 1.1));
+        last.w = Math.max(1, curWidth() * (0.45 + e.pressure * 1.1));
       }
       redraw();
     });
 
     function end(){
       if(drawing){ drawing = false; last = null; api.onChange(); }
-      if(panning){ panning = false; }
     }
     canvas.addEventListener('pointerup', end);
     canvas.addEventListener('pointercancel', end);
 
     canvas.addEventListener('wheel', e=>{
-      if(!e.ctrlKey && !e.metaKey && !opt.alwaysZoom) return;
+      if(e.ctrlKey || e.metaKey || opt.alwaysZoom){
+        e.preventDefault();
+        const [x,y] = pos(e);
+        const old = st.view.s;
+        const next = Math.min(4, Math.max(0.4, old * (e.deltaY < 0 ? 1.12 : 0.9)));
+        st.view.x = x - (x - st.view.x) * (next/old);
+        st.view.y = y - (y - st.view.y) * (next/old);
+        st.view.s = next;
+        redraw();
+        if(api.onZoom) api.onZoom(next);
+        return;
+      }
       e.preventDefault();
-      const [x,y] = pos(e);
-      const old = st.view.s;
-      const next = Math.min(4, Math.max(0.4, old * (e.deltaY < 0 ? 1.12 : 0.9)));
-      st.view.x = x - (x - st.view.x) * (next/old);
-      st.view.y = y - (y - st.view.y) * (next/old);
-      st.view.s = next;
-      redraw();
-      if(api.onZoom) api.onZoom(next);
+      if(e.deltaY > 0) api.nextPage(); else api.prevPage();
     }, {passive:false});
 
     api.undo = function(){ st.strokes.pop(); redraw(); api.onChange(); };
     api.clear = function(){ st.strokes.length = 0; redraw(); api.onChange(); };
     api.redraw = redraw;
-    api.setTool = t=>{ st.tool = t; canvas.style.cursor = t==='pan'?'grab':(t==='eraser'?'cell':'crosshair'); };
+    api.setTool = t=>{ st.tool = t; canvas.style.cursor = t==='eraser'?'cell':'crosshair'; };
     api.setColor = c=>{ st.color = c; };
-    api.setWidth = w=>{ st.width = w; };
+    api.setWidth = w=>{ if(st.tool==='eraser') st.eraserW=w; else st.penW=w; };
+    api.setPenW = w=>{ st.penW=w; api.onChange(); };
+    api.setEraserW = w=>{ st.eraserW=w; api.onChange(); };
+    api.getWidth = ()=> curWidth();
+    api.pageCount = ()=> st.pages.length;
+    api.getPage = ()=> st.page;
+    api.gotoPage = i=>{
+      i = Math.max(0, Math.min(i, st.pages.length-1));
+      if(i===st.page) return;
+      st.page = i; redraw();
+      if(api.onPageChange) api.onPageChange();
+      api.onChange();
+    };
+    api.addPage = ()=>{
+      st.pages.push({strokes:[], view:{s:1,x:0,y:0}});
+      st.page = st.pages.length-1; redraw();
+      if(api.onPageChange) api.onPageChange();
+      api.onChange();
+    };
+    api.nextPage = ()=>{ if(st.page < st.pages.length-1) api.gotoPage(st.page+1); else api.addPage(); };
+    api.prevPage = ()=> api.gotoPage(st.page-1);
     api.exportPNG = function(){
       const tmp = document.createElement('canvas');
       tmp.width = canvas.width; tmp.height = canvas.height;
@@ -489,25 +522,48 @@
     boardEl.classList.add('on');
     const key = (currentId||'') + ':' + paper.questions[curQ].no;
     if(!board || boardKey !== key){
-      const saved = LS.get('board:'+key, {strokes:[], view:{s:1,x:0,y:0}});
+      const saved = LS.get('board:'+key, null);
+      let pages, page=0, penW=3, eraserW=8;
+      if(saved && Array.isArray(saved.pages)){
+        pages = saved.pages; page = saved.page||0;
+        penW = saved.penW||3; eraserW = saved.eraserW||8;
+      } else if(saved){
+        pages = [{strokes: saved.strokes||[], view: saved.view||{s:1,x:0,y:0}}];
+      } else {
+        pages = [{strokes:[], view:{s:1,x:0,y:0}}];
+      }
       board = Board(boardCanvas, {
-        strokes: saved.strokes, view: saved.view, color: currentColor(),
-        width: +document.getElementById('penW').value,
+        pages: pages, page: page, color: currentColor(),
+        penW: penW, eraserW: eraserW,
         name: (paper.title||'') + '-' + paper.questions[curQ].no,
-        onChange: ()=>LS.set('board:'+(currentId||'')+':'+paper.questions[curQ].no,
-                              {strokes: board.st.strokes, view: board.st.view})
+        onChange: saveBoard
       });
+      board.onPageChange = syncBoardUI;
       boardKey = key;
     } else {
       board.resize();
     }
+    syncBoardUI();
     renderFloat();
     setTimeout(()=>board.resize(), 30);
   }
+  function saveBoard(){
+    if(!board || !paper) return;
+    LS.set('board:'+(currentId||'')+':'+paper.questions[curQ].no,
+      {pages: board.st.pages, page: board.st.page, penW: board.st.penW, eraserW: board.st.eraserW});
+  }
   function currentColor(){ const on=document.querySelector('#colors .sw.on'); return on?on.dataset.c:'#1f2937'; }
 
+  function syncBoardUI(){
+    if(!board) return;
+    document.getElementById('pageTxt').textContent = (board.getPage()+1)+'/'+board.pageCount();
+    document.getElementById('penW').value = board.st.penW;
+    document.getElementById('eraserW').value = board.st.eraserW;
+    toolBtn(board.st.tool==='eraser' ? 'toolEraser' : 'toolPen');
+  }
+
   function closeBoard(){
-    if(board){ LS.set('board:'+(currentId||'')+':'+paper.questions[curQ].no, {strokes: board.st.strokes, view: board.st.view}); }
+    saveBoard();
     boardEl.classList.remove('on');
   }
 
@@ -519,20 +575,19 @@
   document.getElementById('boardClose').onclick = closeBoard;
   document.getElementById('toolPen').onclick = ()=>{ board && board.setTool('pen'); toolBtn('toolPen'); };
   document.getElementById('toolEraser').onclick = ()=>{ board && board.setTool('eraser'); toolBtn('toolEraser'); };
-  document.getElementById('toolPan').onclick = ()=>{ board && board.setTool('pan'); toolBtn('toolPan'); };
-  function toolBtn(id){ ['toolPen','toolEraser','toolPan'].forEach(x=>document.getElementById(x).classList.toggle('on', x===id)); }
-  document.getElementById('penW').oninput = e=>{ board && board.setWidth(+e.target.value); };
+  function toolBtn(id){ ['toolPen','toolEraser'].forEach(x=>document.getElementById(x).classList.toggle('on', x===id)); }
+  document.getElementById('penW').oninput = e=>{ board && board.setPenW(+e.target.value); };
+  document.getElementById('eraserW').oninput = e=>{ board && board.setEraserW(+e.target.value); };
+  document.getElementById('pagePrev').onclick = ()=>board && board.prevPage();
+  document.getElementById('pageNext').onclick = ()=>board && board.nextPage();
+  document.getElementById('pageAdd').onclick = ()=>board && board.addPage();
   document.getElementById('undoBtn').onclick = ()=>board && board.undo();
   document.getElementById('clearBtn').onclick = ()=>{
     if(!board) return;
-    if(!confirm('清空当前这道题的草稿？')) return;
+    if(!confirm('清空当前页草稿？')) return;
     board.clear();
   };
   document.getElementById('saveBtn').onclick = ()=>board && board.exportPNG();
-  document.getElementById('zoomReset').onclick = ()=>{
-    if(!board) return;
-    board.st.view = {s:1,x:0,y:0}; board.redraw(); document.getElementById('zoomTxt').textContent='100%';
-  };
 
   /* 题目浮窗 */
   const qFloat = document.getElementById('qFloat');
