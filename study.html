@@ -26,8 +26,6 @@
   .topbar{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
   .topbar-in{max-width:1400px;margin:0 auto;padding:9px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
   .brand{display:flex;align-items:center;gap:9px;margin-right:auto}
-  .brand h1{font-size:16px;margin:0;font-weight:650}
-  .brand span{font-size:12px;color:var(--ink-3)}
   .avatar{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);object-fit:cover;background:#fff;flex:none}
   .author{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px}
   .author .avatar{width:24px;height:24px}
@@ -137,6 +135,8 @@
   .qf-body p{margin:0}
   .qf-nav{display:flex;gap:6px;align-items:center;padding:6px 9px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-3)}
   .qf-nav .grow{flex:1}
+  .qfloat.collapsed .qf-body,.qfloat.collapsed .qf-nav{display:none}
+  .qfloat.collapsed .qf-head{border-bottom:0;border-radius:12px}
 
   .hint{font-size:12px;color:var(--ink-3);margin:8px 0 0}
 
@@ -180,8 +180,7 @@
   <div class="topbar-in">
     <div class="brand">
       <img class="avatar" src="assets/avatar.png" alt="头像">
-      <h1>刷题工作台</h1>
-      <span id="topStat">数学草稿纸 · 英语文章标注</span>
+      <img class="sign" src="assets/signature.png" alt="高冷水水">
     </div>
     <div class="tabs" id="subjTabs">
       <button data-subj="math" class="on">高等数学</button>
@@ -542,6 +541,8 @@
 
   function renderFloat(){
     if(!paper) return;
+    qFloat.classList.remove('collapsed');
+    const qc = document.getElementById('qfClose'); if(qc) qc.textContent = '收起';
     const q = paper.questions[curQ];
     qFloat.dataset.no = q.no;
     qfTitle.textContent = '第 ' + q.no + ' 题 / 共 ' + paper.questions.length;
@@ -585,7 +586,11 @@
   document.getElementById('qfNext').onclick = ()=>{ if(paper && curQ<paper.questions.length-1){ saveBoardState(); curQ++; reopen(); } };
   function saveBoardState(){ if(board) LS.set('board:'+(currentId||'')+':'+paper.questions[curQ].no, {strokes: board.st.strokes, view: board.st.view}); }
   function reopen(){ board=null; boardKey=null; openBoard(curQ); }
-  document.getElementById('qfClose').onclick = ()=>{ qFloat.style.display='none'; };
+  const qfClose = document.getElementById('qfClose');
+  qfClose.onclick = ()=>{
+    const collapsed = qFloat.classList.toggle('collapsed');
+    qfClose.textContent = collapsed ? '展开' : '收起';
+  };
   document.getElementById('qfAi').onclick = ()=>{
     if(paper && window.AIQA) window.AIQA.open(paper.questions[curQ], {paperTitle: paper.title});
   };
