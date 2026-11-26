@@ -32,6 +32,12 @@
   .author{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px}
   .author .avatar{width:24px;height:24px}
   .sign{height:22px;width:auto;opacity:.85}
+  .timer{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:14px;flex-wrap:wrap}
+  .timer .t-ico{font-size:15px}
+  #tTime{font-variant-numeric:tabular-nums;font-weight:600;min-width:70px}
+  .timer .btn.sm{padding:3px 10px;font-size:12px}
+  .timer.done #tTime{color:var(--accent)}
+  .timer .t-done{font-size:12px;color:var(--accent);font-weight:500}
   .tabs{display:flex;background:#eef1f4;border-radius:9px;padding:3px}
   .tabs button{border:0;background:transparent;padding:6px 13px;border-radius:7px;font-size:13.5px;color:var(--ink-2);cursor:pointer;font-weight:500}
   .tabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(16,32,43,.1)}
@@ -576,6 +582,7 @@
     refreshOpts(qfBody, q);
     const card = Q.querySelector('.q[data-no="' + q.no + '"]');
     if(card) refreshOpts(card, q);
+    checkComplete();
   }
 
   document.getElementById('qfPrev').onclick = ()=>{ if(curQ>0){ saveBoardState(); curQ--; reopen(); } };
@@ -680,12 +687,7 @@
         const no = +el.closest('.qmini').dataset.no;
         const qq = paper.questions.find(x=>x.no === no);
         if(!qq) return;
-        setPick(qq.no, el.dataset.k);
-        const box = el.parentElement;
-        box.querySelectorAll('.ropt').forEach(x=>x.classList.toggle('sel', x.dataset.k === el.dataset.k));
-        refreshOpts(qfBody, qq);
-        const card = Q.querySelector('.q[data-no="' + qq.no + '"]');
-        if(card) refreshOpts(card, qq);
+        pickOption(qq, el.dataset.k);
       };
     });
 
@@ -756,6 +758,84 @@
   }
   function setPick(no, k){ LS.set('pick:' + (currentId||'') + ':' + no, k); }
 
+  /* ---------- 整套卷子计时 ---------- */
+  var tTimer = null, tState = null;
+  function timerKey(){ return 'time:' + (currentId||''); }
+  function loadTimer(){
+    var d = LS.get(timerKey(), null);
+    if(!d || typeof d !== 'object') d = {start:0, acc:0, running:false, done:false, total:0};
+    return d;
+  }
+  function saveTimer(){ LS.set(timerKey(), tState); }
+  function currentSec(){
+    if(tState.done) return tState.total || 0;
+    if(tState.running) return tState.acc + (Date.now() - tState.start)/1000;
+    return tState.acc;
+  }
+  function fmtTime(sec){
+    sec = Math.max(0, Math.floor(sec));
+    var h = Math.floor(sec/3600), m = Math.floor(sec%3600/60), s = sec%60;
+    var mm = String(m).padStart(2,'0'), ss = String(s).padStart(2,'0');
+    return h>0 ? h+':'+mm+':'+ss : mm+':'+ss;
+  }
+  function renderTimer(){
+    var box = document.getElementById('timerBox');
+    if(!box) return;
+    var timeEl = document.getElementById('tTime');
+    var toggle = document.getElementById('tToggle');
+    var reset = document.getElementById('tReset');
+    if(tState.done){
+      box.classList.add('done');
+      timeEl.textContent = '用时 ' + fmtTime(tState.total);
+      toggle.style.display='none'; reset.style.display='';
+      return;
+    }
+    box.classList.remove('done');
+    timeEl.textContent = fmtTime(currentSec());
+    toggle.textContent = tState.running ? '暂停' : '继续';
+    toggle.style.display=''; reset.style.display='';
+  }
+  function stopTick(){ if(tTimer){ clearInterval(tTimer); tTimer=null; } }
+  function startTick(){ stopTick(); tTimer = setInterval(renderTimer, 1000); }
+  function initTimer(){
+    stopTick();
+    tState = loadTimer();
+    if(!tState.done && tState.start === 0){
+      tState.start = Date.now(); tState.running = true; saveTimer();
+    }
+    renderTimer();
+    if(tState.running && !tState.done) startTick();
+  }
+  function toggleTimer(){
+    if(tState.done) return;
+    if(tState.running){
+      tState.acc = currentSec(); tState.running = false; saveTimer(); stopTick();
+    } else {
+      tState.start = Date.now(); tState.running = true; saveTimer(); startTick();
+    }
+    renderTimer();
+  }
+  function resetTimer(){
+    stopTick();
+    try{ localStorage.removeItem('sb:'+timerKey()); }catch(e){}
+    tState = {start:0,acc:0,running:false,done:false,total:0};
+    renderTimer();
+  }
+  function isAllAnswered(){
+    if(!paper) return false;
+    return paper.questions.every(function(q){
+      if(q.type==='choice' && q.options && q.options.length) return !!getPick(q.no);
+      return !!getAns(q.no);
+    });
+  }
+  function checkComplete(){
+    if(!paper || !tState || tState.done) return;
+    if(isAllAnswered()){
+      tState.total = currentSec(); tState.done = true; tState.running = false;
+      saveTimer(); stopTick(); renderTimer();
+    }
+  }
+
   function optClass(o, pick, q){
     let c = 'opt';
     if(o.correct) c += ' right';
@@ -813,10 +893,20 @@
         <span>题量 <b>${paper.count}</b></span>
         <span>标注总分 <b>${paper.officialTotal||150}</b></span>
         <span>科目 <b>${paper.subjectName}</b></span></div>
-      </div>`;
+      <div class="timer" id="timerBox">
+        <span class="t-ico">⏱</span>
+        <span id="tTime">00:00</span>
+        <button class="btn sm" id="tToggle">暂停</button>
+        <button class="btn sm" id="tReset">重置</button>
+      </div>
+    </div>`;
     Q.innerHTML = paper.questions.map((q,i)=>qCard(q,i)).join('');
     bind();
     initMarks();
+    initTimer();
+    const tg = document.getElementById('tToggle'), rs = document.getElementById('tReset');
+    if(tg) tg.onclick = toggleTimer;
+    if(rs) rs.onclick = resetTimer;
   }
 
   function bind(){
@@ -846,9 +936,10 @@
           t = setTimeout(()=>{
             setAns(+box.dataset.ano, box.value);
             if(sv) sv.textContent = box.value.trim() ? '已保存到本机' : '已清空';
+            checkComplete();
           }, 500);
         };
-        box.addEventListener('blur', ()=>{ setAns(+box.dataset.ano, box.value); if(sv) sv.textContent = box.value.trim() ? '已保存到本机' : ''; });
+        box.addEventListener('blur', ()=>{ setAns(+box.dataset.ano, box.value); if(sv) sv.textContent = box.value.trim() ? '已保存到本机' : ''; checkComplete(); });
       }
     });
     if(window.__renderMath) window.__renderMath(Q);
