@@ -25,9 +25,13 @@
 
   .topbar{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
   .topbar-in{max-width:1400px;margin:0 auto;padding:9px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-  .brand{display:flex;align-items:baseline;gap:9px;margin-right:auto}
+  .brand{display:flex;align-items:center;gap:9px;margin-right:auto}
   .brand h1{font-size:16px;margin:0;font-weight:650}
   .brand span{font-size:12px;color:var(--ink-3)}
+  .avatar{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);object-fit:cover;background:#fff;flex:none}
+  .author{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px}
+  .author .avatar{width:24px;height:24px}
+  .sign{height:22px;width:auto;opacity:.85}
   .tabs{display:flex;background:#eef1f4;border-radius:9px;padding:3px}
   .tabs button{border:0;background:transparent;padding:6px 13px;border-radius:7px;font-size:13.5px;color:var(--ink-2);cursor:pointer;font-weight:500}
   .tabs button.on{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(16,32,43,.1)}
@@ -171,6 +175,7 @@
 <div class="topbar">
   <div class="topbar-in">
     <div class="brand">
+      <img class="avatar" src="assets/avatar.png" alt="头像">
       <h1>刷题工作台</h1>
       <span id="topStat">数学草稿纸 · 英语文章标注</span>
     </div>
@@ -210,6 +215,10 @@
 <footer>
   数据来源：库课网校 kuke99.com 贵州专升本（历年真题 + 模拟考场）· 手写笔迹与标注仅保存在本机浏览器，不上传。<br>
   公式与图片直接引用原站 CDN，需要联网；若图片不显示，说明上游资源已变更。
+  <div class="author">
+    <img class="avatar" src="assets/avatar.png" alt="头像">
+    <img class="sign" src="assets/signature.png" alt="高冷水水">
+  </div>
 </footer>
 
 <!-- 草稿纸 -->

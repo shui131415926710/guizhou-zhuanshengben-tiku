@@ -43,9 +43,13 @@
     max-width:1180px; margin:0 auto; padding:10px 20px;
     display:flex; align-items:center; gap:18px; flex-wrap:wrap;
   }
-  .brand{display:flex;align-items:baseline;gap:10px;margin-right:auto}
+  .brand{display:flex;align-items:center;gap:10px;margin-right:auto}
   .brand h1{font-size:17px;margin:0;font-weight:650;letter-spacing:.3px}
   .brand span{font-size:12px;color:var(--ink-3)}
+  .avatar{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);object-fit:cover;background:#fff;flex:none}
+  .author{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:12px}
+  .author .avatar{width:26px;height:26px}
+  .sign{height:24px;width:auto;opacity:.85}
   .subj-tabs{display:flex;background:#eef1f4;border-radius:9px;padding:3px}
   .subj-tabs button{
     border:0;background:transparent;padding:7px 15px;border-radius:7px;
@@ -183,6 +187,7 @@
 <div class="topbar">
   <div class="topbar-in">
     <div class="brand">
+      <img class="avatar" src="assets/avatar.png" alt="头像">
       <h1>贵州专升本真题与模拟卷</h1>
       <span id="topStat"></span>
     </div>
@@ -220,6 +225,10 @@
 <footer>
   数据来源：库课网校 kuke99.com 贵州专升本题库 · 历年真题与模拟考场 · 仅供个人复习查看，请勿公开传播或用于商业用途。<br>
   题干、选项、解析中的公式为图片形式，直接引用原站 CDN；若图片无法显示，说明上游资源已变更。
+  <div class="author">
+    <img class="avatar" src="assets/avatar.png" alt="头像">
+    <img class="sign" src="assets/signature.png" alt="高冷水水">
+  </div>
 </footer>
 
 <script src="data-meta.js"></script>
