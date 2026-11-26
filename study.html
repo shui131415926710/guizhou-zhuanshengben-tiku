@@ -67,8 +67,6 @@
   .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
   .btn.sm{padding:3px 9px;font-size:12px;border-radius:6px}
   .ph-note{color:#9aa6b2;font-size:12px}
-  .search{flex:1;min-width:160px;border:1px solid var(--line);border-radius:8px;padding:7px 11px;font-size:13px;outline:none;background:#fff}
-  .search:focus{border-color:#9ed3cb;box-shadow:0 0 0 3px rgba(15,118,110,.08)}
 
   .q{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin-bottom:13px;box-shadow:var(--shadow)}
   .q-head{display:flex;align-items:center;gap:9px;margin-bottom:9px;flex-wrap:wrap}
@@ -208,7 +206,6 @@
 
   <div class="main">
     <div class="toolbar">
-      <input class="search" id="search" name="sbq_kw" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="搜索题干 / 选项 / 材料关键词">
       <button class="btn primary" id="openBoard">打开草稿纸</button>
       <button class="btn" id="expandAll">展开答案</button>
       <button class="btn" id="collapseAll">收起答案</button>
@@ -305,12 +302,11 @@
   const PAPERS = (window.PAPERS = window.PAPERS || {});
 
   let subject='math', category='real', currentId=null, paper=null;
-  let showAll=false, keyword='';
+  let showAll=false;
   let curQ = 0;                       // 草稿纸浮窗当前题
 
   const elList=document.getElementById('paperList');
   const elHead=document.getElementById('paperHead');
-  const elSearch=document.getElementById('search');
   const elSideTitle=document.getElementById('sideTitle');
 
   /* ---------- 本地存储 ---------- */
@@ -945,12 +941,6 @@
     if(window.__renderMath) window.__renderMath(Q);
   }
 
-  function matches(q, kw){
-    const k = kw.toLowerCase();
-    return [q.stem,q.analysis,q.answer,q.material,(q.options||[]).map(o=>o.html).join(' ')]
-      .join(' ').replace(/<[^>]*>/g,' ').toLowerCase().includes(k);
-  }
-
   /* ---------- 数据加载 ---------- */
   function papersOf(s,c){ return META.papers.filter(p=>p.subject===s && p.category===c); }
 
@@ -1038,41 +1028,6 @@
   document.getElementById('expandAll').onclick = ()=>{ document.getElementById('allAns').checked=true; document.getElementById('allAns').onchange({target:{checked:true}}); };
   document.getElementById('collapseAll').onclick = ()=>{ document.getElementById('allAns').checked=false; document.getElementById('allAns').onchange({target:{checked:false}}); };
 
-  let timer=null, userTyped=false;
-  function flash(msg){
-    const d = document.createElement('div');
-    d.className = 'loading';
-    d.style.cssText = 'background:#fff8e6;border:1px solid #f0e0b8;color:#8a5a00;border-radius:8px;margin-bottom:10px';
-    d.textContent = msg;
-    Q.insertBefore(d, Q.firstChild);
-    setTimeout(()=>d.remove(), 7000);
-  }
-  function clearKw(){
-    elSearch.value = '';
-    keyword = '';
-    window.__sbKeyword = '';
-    renderPaper();
-  }
-  window.__sbClearSearch = clearKw;
-  elSearch.oninput = e=>{
-    userTyped = true;
-    clearTimeout(timer);
-    timer = setTimeout(()=>{
-      keyword = e.target.value.trim();
-      window.__sbKeyword = keyword;
-      if(!paper) return;
-      if(!keyword){ renderPaper(); return; }
-      const hits = paper.questions.filter(q=>matches(q, keyword));
-      Q.innerHTML = hits.length
-        ? hits.map(q=>qCard(q, paper.questions.indexOf(q))).join('')
-        : `<div class="loading">没有匹配的题目。<br>搜索框里现在是“<b>${esc(keyword)}</b>”，所以题目被过滤掉了。<br><button class="btn sm primary" id="clrKw" style="margin-top:8px">清空搜索，显示全部 ${paper.questions.length} 题</button></div>`;
-      initMarks();
-      if(window.__renderMath) window.__renderMath(Q);
-      const ck = document.getElementById('clrKw');
-      if(ck) ck.onclick = clearKw;
-    }, 220);
-  };
-
   window.addEventListener('resize', ()=>{
     markBoards && Q.querySelectorAll('.mark-layer').forEach(cv=>{ const b = markBoards.get(cv); b && b.resize(); });
     board && boardEl.classList.contains('on') && board.resize();
@@ -1099,19 +1054,6 @@
   })();
 
   openPaper(pickDefault());
-
-  // Edge/Chrome 刷新后会把输入框里的旧值恢复回来。如果本次没打字却冒出关键词，
-  // 直接清掉并说明，避免看起来像“题目丢了”。
-  setTimeout(()=>{
-    if(userTyped) return;
-    const v = (elSearch.value || '').trim();
-    if(!v) return;
-    elSearch.value = ''; keyword = ''; window.__sbKeyword = '';
-    if(paper){
-      renderPaper();
-      flash('搜索框里原本残留着“' + v + '”，这是浏览器自动恢复的旧内容，已替你清空。');
-    }
-  }, 700);
 })();
 </script>
 <script src="ai.js?v=20261126"></script>
