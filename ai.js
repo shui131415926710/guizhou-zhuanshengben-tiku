@@ -16,7 +16,7 @@
     custom:   { label:'自建 / 中转', base:'', model:'', vision:true, tip:'填任何 OpenAI 兼容的 /v1 地址。' }
   };
 
-  var state = { q:null, ctx:null, history:[], busy:false, panel:null };
+  var state = { q:null, ctx:null, history:[], busy:false, panel:null, quote:null, quoteBar:null };
 
   function cfg(){
     try{ return JSON.parse(localStorage.getItem(LSKEY) || '{}'); }catch(e){ return {}; }
@@ -207,6 +207,11 @@
   .aiq-set .hint{font-size:11.5px;color:#8a97a4;margin-top:6px;line-height:1.7}\
   .aiq-set .row{display:flex;gap:8px;margin-top:16px}\
   .aiq-err{color:#c0392b;font-size:12.5px}\
+  .aiq-quote{position:fixed;z-index:1000;display:none;align-items:center;gap:6px;\
+    background:#0f766e;color:#fff;border:0;border-radius:8px;padding:6px 11px;font-size:12.5px;\
+    cursor:pointer;box-shadow:0 6px 16px rgba(15,118,110,.35);white-space:nowrap;font-family:inherit}\
+  .aiq-quote:hover{background:#0d6a63}\
+  .aiq-quote .q-ic{font-size:13px}\
   ';
 
   function el(tag, cls, html){
@@ -318,6 +323,20 @@
     ta.addEventListener('keydown', function(e){
       if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); send(); }
     });
+
+    // 选中文字 → 引用追问浮条
+    var bar = el('button', 'aiq-quote');
+    bar.innerHTML = '<span class="q-ic">❝</span>引用追问';
+    bar.style.display = 'none';
+    bar.addEventListener('mousedown', function(e){ e.preventDefault(); });
+    bar.onclick = onQuoteAsk;
+    document.body.appendChild(bar);
+    state.quoteBar = bar;
+
+    document.addEventListener('mouseup', function(){ setTimeout(detectQuote, 120); });
+    document.addEventListener('mousedown', function(e){
+      if(bar.style.display === 'flex' && !bar.contains(e.target)) hideQuoteBar();
+    });
   }
 
   /* ---------- 对话历史（按试卷 + 题号持久化） ---------- */
@@ -394,6 +413,79 @@
     state.history = [];
     render();
     showHist();
+  }
+
+  /* ---------- 选中引用追问 ---------- */
+  function resolveQFromCard(card){
+    if(!card) return null;
+    var no = +card.getAttribute('data-no');
+    var pid = card.getAttribute('data-paper') || window.__currentPaperId;
+    var pk = (window.PAPERS || {})[pid] || currentPk();
+    if(!pk) return null;
+    var q = pk.questions.filter(function(x){ return x.no === no; })[0];
+    return q ? { q: q, ctx: { paperTitle: pk.title } } : null;
+  }
+
+  function hideQuoteBar(){
+    if(state.quoteBar) state.quoteBar.style.display = 'none';
+  }
+
+  function showQuoteBar(rect){
+    var bar = state.quoteBar;
+    bar.style.display = 'flex';
+    var bw = bar.offsetWidth || 130;
+    var left = Math.max(8, Math.min(rect.left + rect.width / 2 - bw / 2, window.innerWidth - bw - 8));
+    var top = rect.top - bar.offsetHeight - 8;
+    if(top < 8) top = rect.bottom + 8;
+    bar.style.left = left + 'px';
+    bar.style.top = top + 'px';
+  }
+
+  function detectQuote(){
+    hideQuoteBar();
+    var sel = window.getSelection();
+    if(!sel || sel.isCollapsed) return;
+    var text = String(sel.toString() || '').replace(/\s+/g, ' ').trim();
+    if(text.length < 2) return;
+    var node = sel.anchorNode;
+    if(!node) return;
+    var el = node.nodeType === 1 ? node : node.parentElement;
+    if(!el) return;
+    var tag = (el.tagName || '').toLowerCase();
+    if(tag === 'textarea' || tag === 'input') return;
+
+    var card = el.closest ? el.closest('.q') : null;
+    var aiMsg = el.closest ? el.closest('.aiq-msg.ai') : null;
+    var data = null;
+    if(card){
+      var r = resolveQFromCard(card);
+      if(!r) return;
+      data = { q: r.q, ctx: r.ctx, source: 'card' };
+    } else if(aiMsg){
+      if(!state.q) return;
+      data = { q: state.q, ctx: state.ctx || {}, source: 'ai' };
+    } else {
+      return;
+    }
+    var range = sel.getRangeAt(0);
+    var rect = range.getBoundingClientRect();
+    state.quote = data;
+    state.quote.text = text;
+    showQuoteBar(rect);
+  }
+
+  function onQuoteAsk(){
+    var d = state.quote;
+    if(!d) return;
+    var quote = state.quote.text;
+    open(d.q, d.ctx);
+    var question = d.source === 'ai'
+      ? '关于上面回答里这句话：“' + quote + '”，这个结论 / 这一步是怎么来的？请再展开讲清楚推导过程。'
+      : '针对题目或解析里这句话：“' + quote + '”，这一步是怎么来的？请结合本题把推导或理由讲清楚。';
+    var ta = state.panel.querySelector('#aiqIn');
+    ta.value = question;
+    hideQuoteBar();
+    send();
   }
 
   function open(q, ctx){
