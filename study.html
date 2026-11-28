@@ -173,6 +173,21 @@
   footer{max-width:1400px;margin:0 auto;padding:0 18px 40px;font-size:12px;color:var(--ink-3);line-height:1.8}
   .disclaimer{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);font-size:11px;opacity:.85}
   .loading{color:var(--ink-3);font-size:13px;padding:22px 0}
+
+  /* ===== AI 模拟考试 ===== */
+  .exam-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px dashed var(--line)}
+  .exam-bar .ex-ico{font-size:15px}
+  #exTime{font-variant-numeric:tabular-nums;font-weight:700;min-width:84px;font-size:15px}
+  #exTime.warn{color:#c0392b}
+  .exam-bar .grow{flex:1}
+  .exam-result{margin-top:14px;background:linear-gradient(135deg,#e8f5f3,#f3f8ff);border:1px solid #cfe6e1;border-radius:12px;padding:15px 18px}
+  .exam-result .er-title{font-size:15px;font-weight:700;color:var(--accent);margin-bottom:8px}
+  .exam-result .er-grid{display:flex;gap:22px;flex-wrap:wrap;font-size:13.5px;color:var(--ink-2)}
+  .exam-result .er-grid b{font-size:18px;color:var(--ink)}
+  .exam-result .er-note{margin-top:8px;font-size:12.5px;color:var(--ink-3);line-height:1.7}
+  .q.locked .opt{cursor:default}
+  .q.locked .ansbox{background:#f4f6f8;color:var(--ink-2)}
+  .mock-tag{display:inline-block;font-size:11px;color:#0d7a71;background:var(--accent-soft);padding:2px 9px;border-radius:20px;font-weight:600;margin-left:6px}
 </style>
 </head>
 <body>
@@ -206,6 +221,7 @@
 
   <div class="main">
     <div class="toolbar">
+      <button class="btn primary" id="mockBtn">✦ AI 模拟出题</button>
       <button class="btn primary" id="openBoard">打开草稿纸</button>
       <button class="btn" id="expandAll">展开答案</button>
       <button class="btn" id="collapseAll">收起答案</button>
@@ -620,6 +636,7 @@
   }
 
   function pickOption(q, k){
+    if(exam.locked) return;
     setPick(q.no, k);
     refreshOpts(qfBody, q);
     const card = Q.querySelector('.q[data-no="' + q.no + '"]');
@@ -875,6 +892,7 @@
     });
   }
   function checkComplete(){
+    if(exam.mode) return;
     if(!paper || !tState || tState.done) return;
     if(isAllAnswered()){
       tState.total = currentSec(); tState.done = true; tState.running = false;
@@ -891,9 +909,10 @@
   }
 
   function qCard(q, idx){
+    const matBtn = exam.mode ? '' : `<button class="btn sm mbtn" data-idx="${idx}">精读 / 标注</button>`;
     const mat = q.material ? `<div class="passage">
         <div class="ph"><b>材料</b>原文可按行阅读并圈画重点
-          <button class="btn sm mbtn" data-idx="${idx}">精读 / 标注</button>
+          ${matBtn}
         </div>
         <div class="pbody">${q.material}</div>
       </div>` : '';
@@ -931,28 +950,71 @@
     </article>`;
   }
 
+  function renderExamBar(){
+    const t=document.getElementById('exTime');
+    if(!t) return;
+    t.textContent=fmtTime(exam.remain);
+    t.classList.toggle('warn', exam.remain<=300 && !exam.locked);
+  }
+
+  function resultPanel(){
+    const r=exam.result; if(!r) return '';
+    return `<div class="exam-result">
+      <div class="er-title">${r.auto?'⏰ 时间到，已自动交卷':'✓ 已交卷'}</div>
+      <div class="er-grid">
+        <span>选择题得分 <b>${r.choiceScore}</b> / ${r.choiceMax} 分</span>
+        <span>答对 <b>${r.choiceRight}</b> 题</span>
+        <span>选择未答 <b>${r.choiceTodo}</b> 题</span>
+        <span>主观未答 <b>${r.subjTodo}</b> 题</span>
+        <span>用时 <b>${fmtTime(r.used)}</b></span>
+      </div>
+      <div class="er-note">主观题与大题无法自动判分，请对照下方参考答案自行批改；选择题已按标准答案标注对错。</div>
+    </div>`;
+  }
+
   function renderPaper(){
     if(!paper) return;
-    elHead.innerHTML = `<div class="paper-head">
-      <h2>${esc(paper.title)}</h2>
-      <div class="meta"><span>${paper.category==='real'?'历年真题':'模拟卷'}</span>
-        <span>题量 <b>${paper.count}</b></span>
-        <span>标注总分 <b>${paper.officialTotal||150}</b></span>
-        <span>科目 <b>${paper.subjectName}</b></span></div>
-      <div class="timer" id="timerBox">
+    const isMock = exam.mode;
+    const timerHtml = isMock ? '' : `<div class="timer" id="timerBox">
         <span class="t-ico">⏱</span>
         <span id="tTime">00:00</span>
         <button class="btn sm" id="tToggle">暂停</button>
         <button class="btn sm" id="tReset">重置</button>
-      </div>
+      </div>`;
+    const examBar = isMock ? `<div class="exam-bar" id="examBar">
+        <span class="ex-ico">✦</span><span>AI 模拟考试</span>
+        <span id="exTime">${fmtTime(exam.remain)}</span>
+        <span class="grow"></span>
+        ${exam.locked ? '' : '<button class="btn primary" id="exSubmit">交卷</button>'}
+        <button class="btn" id="exExit">${exam.locked?'退出模拟':'退出模拟'}</button>
+      </div>` : '';
+    elHead.innerHTML = `<div class="paper-head">
+      <h2>${esc(paper.title)}${isMock?'<span class="mock-tag">AI 抽题组卷</span>':''}</h2>
+      <div class="meta"><span>${paper.category==='real'?'历年真题':paper.category==='mock'?'AI 模拟卷':'模拟卷'}</span>
+        <span>题量 <b>${paper.count}</b></span>
+        <span>标注总分 <b>${paper.officialTotal||150}</b></span>
+        <span>科目 <b>${paper.subjectName}</b></span></div>
+      ${timerHtml}
+      ${examBar}
+      ${isMock ? resultPanel() : ''}
     </div>`;
     Q.innerHTML = paper.questions.map((q,i)=>qCard(q,i)).join('');
     bind();
     initMarks();
-    initTimer();
-    const tg = document.getElementById('tToggle'), rs = document.getElementById('tReset');
-    if(tg) tg.onclick = toggleTimer;
-    if(rs) rs.onclick = resetTimer;
+    if(isMock){
+      // 交卷后锁定并展开答案；作答阶段不使用整套累计计时
+      Q.querySelectorAll('.q').forEach(c=>c.classList.add('locked'));
+      if(exam.locked) Q.querySelectorAll('.q').forEach(c=>c.classList.add('ans-open'));
+      const es=document.getElementById('exSubmit');
+      if(es) es.onclick=()=>submitExam(false);
+      const ee=document.getElementById('exExit');
+      if(ee) ee.onclick=exitMock;
+    } else {
+      initTimer();
+      const tg = document.getElementById('tToggle'), rs = document.getElementById('tReset');
+      if(tg) tg.onclick = toggleTimer;
+      if(rs) rs.onclick = resetTimer;
+    }
   }
 
   function bind(){
@@ -963,7 +1025,7 @@
       const d = card.querySelector('.draft');
       d && (d.onclick = ()=>openBoard(i));
       const qq = paper ? paper.questions[i] : null;
-      if(qq && qq.type === 'choice'){
+      if(qq && qq.type === 'choice' && !exam.locked){
         card.querySelectorAll('.opt').forEach(el=>{
           el.onclick = ()=> pickOption(qq, el.dataset.k);
         });
@@ -974,9 +1036,11 @@
       if(ab) ab.onclick = ()=> window.AIQA && window.AIQA.open(paper.questions[i], {paperTitle: paper.title});
       const box = card.querySelector('.ansbox');
       if(box){
+        if(exam.locked){ box.disabled = true; }
         const sv = card.querySelector('.saved');
         let t = null;
         box.oninput = ()=>{
+          if(exam.locked) return;
           if(sv) sv.textContent = '输入中…';
           clearTimeout(t);
           t = setTimeout(()=>{
@@ -985,10 +1049,102 @@
             checkComplete();
           }, 500);
         };
-        box.addEventListener('blur', ()=>{ setAns(+box.dataset.ano, box.value); if(sv) sv.textContent = box.value.trim() ? '已保存到本机' : ''; checkComplete(); });
+        box.addEventListener('blur', ()=>{ if(exam.locked) return; setAns(+box.dataset.ano, box.value); if(sv) sv.textContent = box.value.trim() ? '已保存到本机' : ''; checkComplete(); });
       }
     });
     if(window.__renderMath) window.__renderMath(Q);
+  }
+
+  /* ---------- AI 模拟考试（本地题库随机抽题组卷） ---------- */
+  const EXAM_LIMIT = 120*60;
+  let exam = { mode:false, locked:false, remain:EXAM_LIMIT, timer:null, started:0, result:null };
+
+  function shuffleArr(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); const t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+
+  function loadSubjectPool(subj, done){
+    const ids = META.papers.filter(p=>p.subject===subj).map(p=>p.id);
+    let i=0;
+    (function next(){
+      if(i>=ids.length){ done(); return; }
+      const id=ids[i++];
+      if(PAPERS[id]){ next(); return; }
+      const s=document.createElement('script');
+      s.src='papers/'+id+'.js?v=20261124';
+      s.onload=next; s.onerror=next;
+      document.head.appendChild(s);
+    })();
+  }
+
+  function collectPool(subj){
+    const pool=[]; const seen={};
+    META.papers.filter(p=>p.subject===subj).forEach(p=>{
+      const pp=PAPERS[p.id]; if(!pp||!pp.questions) return;
+      pp.questions.forEach(q=>{
+        const key=String(q.stem||'').replace(/<[^>]*>/g,'').replace(/\s+/g,'').slice(0,120);
+        if(!key||seen[key]) return; seen[key]=1; pool.push(q);
+      });
+    });
+    return pool;
+  }
+
+  function buildMock(subj){
+    const pool=collectPool(subj);
+    const choice=shuffleArr(pool.filter(q=>q.type==='choice' && q.options && q.options.length));
+    const subjq=shuffleArr(pool.filter(q=>q.type!=='choice'));
+    const plan = subj==='math' ? {choice:10, subj:16} : {choice:65, subj:12};
+    const picked=choice.slice(0,plan.choice).concat(subjq.slice(0,plan.subj));
+    const questions=picked.map((q,idx)=>Object.assign({}, q, {no:idx+1}));
+    return {
+      id:'mock-'+subj+'-'+Date.now(), subject:subj,
+      subjectName:subj==='math'?'高等数学':'英语', category:'mock',
+      title:'AI 模拟卷 · '+(subj==='math'?'高等数学':'英语'),
+      questions, count:questions.length, officialTotal:150
+    };
+  }
+
+  function startMock(){
+    exam={mode:true,locked:false,remain:EXAM_LIMIT,timer:null,started:Date.now(),result:null};
+    Q.innerHTML='<div class="loading">正在从题库随机抽题组卷…</div>';
+    loadSubjectPool(subject, ()=>{
+      paper=buildMock(subject);
+      currentId=paper.id; window.__currentPaperId=paper.id;
+      renderPaper();
+      startExamTick();
+    });
+  }
+
+  function startExamTick(){
+    stopExamTick();
+    exam.timer=setInterval(()=>{
+      exam.remain=Math.max(0, EXAM_LIMIT-Math.floor((Date.now()-exam.started)/1000));
+      renderExamBar();
+      if(exam.remain<=0){ submitExam(true); }
+    },1000);
+    renderExamBar();
+  }
+  function stopExamTick(){ if(exam.timer){clearInterval(exam.timer);exam.timer=null;} }
+
+  function submitExam(auto){
+    if(exam.locked) return;
+    stopExamTick(); exam.locked=true;
+    let choiceScore=0,choiceMax=0,choiceRight=0,choiceTodo=0,subjTodo=0;
+    paper.questions.forEach(q=>{
+      if(q.type==='choice'&&q.options&&q.options.length){
+        choiceMax+=q.score||0;
+        const pick=getPick(q.no);
+        const correct=q.options.find(o=>o.correct);
+        if(!pick) choiceTodo++;
+        else if(correct&&pick===correct.k){ choiceScore+=q.score||0; choiceRight++; }
+      } else if(!getAns(q.no)){ subjTodo++; }
+    });
+    exam.result={choiceScore,choiceMax,choiceRight,choiceTodo,subjTodo,used:Math.floor((Date.now()-exam.started)/1000),auto:!!auto};
+    renderPaper();
+  }
+
+  function exitMock(){
+    stopExamTick();
+    exam={mode:false,locked:false,remain:EXAM_LIMIT,timer:null,started:0,result:null};
+    openPaper(pickDefault());
   }
 
   /* ---------- 数据加载 ---------- */
@@ -1015,6 +1171,8 @@
   }
 
   function openPaper(id){
+    stopExamTick();
+    exam={mode:false,locked:false,remain:EXAM_LIMIT,timer:null,started:0,result:null};
     currentId = id; curQ = 0; board = null; boardKey = null;
     renderList();
     if(!id){ Q.innerHTML=''; return; }
@@ -1077,6 +1235,13 @@
   };
   document.getElementById('expandAll').onclick = ()=>{ document.getElementById('allAns').checked=true; document.getElementById('allAns').onchange({target:{checked:true}}); };
   document.getElementById('collapseAll').onclick = ()=>{ document.getElementById('allAns').checked=false; document.getElementById('allAns').onchange({target:{checked:false}}); };
+
+  document.getElementById('mockBtn').onclick = ()=>{
+    if(exam.mode && !exam.locked){
+      if(!confirm('当前模拟卷尚未交卷，重新出题将清空本次作答，确定？')) return;
+    }
+    startMock();
+  };
 
   window.addEventListener('resize', ()=>{
     markBoards && Q.querySelectorAll('.mark-layer').forEach(cv=>{ const b = markBoards.get(cv); b && b.resize(); });
