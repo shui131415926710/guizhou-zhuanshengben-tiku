@@ -245,7 +245,7 @@
       </div>\
       <div class="aiq-body" id="aiqBody"></div>\
       <div class="aiq-foot">\
-        <textarea class="aiq-in" id="aiqIn" placeholder="问：这题为什么选这个？帮我讲讲思路…"></textarea>\
+        <textarea class="aiq-in" id="aiqIn" placeholder="问：这题为什么选这个？回车发送，Shift+Enter 换行"></textarea>\
         <button class="aiq-send" id="aiqSend">发送</button>\
       </div>\
       <div class="aiq-hist">\
@@ -321,7 +321,7 @@
     p.querySelector('#aiqSend').onclick = function(){ if(state.busy) stopGen(); else send(); };
     var ta = p.querySelector('#aiqIn');
     ta.addEventListener('keydown', function(e){
-      if(e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); send(); }
+      if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); send(); }
     });
 
     // 选中文字 → 引用追问浮条
